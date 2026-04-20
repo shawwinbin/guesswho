@@ -1,0 +1,19 @@
+.answer-badge { display: inline-flex; padding: 8px 16px; border-radius: 8px; font-weight: bold; }
+.answer-badge.yes { background-color: #52c41a; color: white; }
+.answer-badge.no { background-color: #f5222d; color: white; }
+.badge-text { font-size: 28px; }
+
+.question-form { padding: 20px; background: #fff; border-radius: 8px; }
+.suggestions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.suggestion-chip { padding: 10px 20px; background: #f0f0f0; border-radius: 20px; font-size: 24px; }
+.input-row { display: flex; gap: 10px; }
+.question-input, .guess-input { flex: 1; }
+
+.guess-form { padding: 20px; background: #fff; border-radius: 8px; margin-top: 20px; }
+
+.voice-controls { display: flex; flex-direction: column; gap: 10px; }
+.transcript-preview { padding: 10px; background: #e6f7ff; border-radius: 8px; }
+.voice-hint { font-size: 24px; color: #888; }
+
+.loading-spinner { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
+.loading-text { margin-top: 20px; color: #888; }
