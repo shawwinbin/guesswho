@@ -1,4 +1,4 @@
-import type { HistoricalFigure } from '../lib/types'
+import { HistoricalFigure } from '../lib/types'
 
 export const figures: HistoricalFigure[] = [
   {

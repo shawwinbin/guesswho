@@ -1,5 +1,5 @@
 import { View, Text } from '@tarojs/components'
-import type { YesNoAnswer } from '../lib/types'
+import { YesNoAnswer } from '../lib/types'
 import './components.scss'
 
 interface AnswerBadgeProps {

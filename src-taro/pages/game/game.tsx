@@ -10,7 +10,7 @@ import { VoiceControls } from '../../components/VoiceControls'
 import { useVoiceGame } from '../../hooks/useVoiceGame'
 import { SUGGESTED_QUESTIONS } from '../../lib/gameContent'
 import { storage } from '../../lib/storage'
-import type { GameSettings } from '../../lib/types'
+import { GameSettings } from '../../lib/types'
 import './game.scss'
 
 const DEFAULT_SETTINGS: GameSettings = {

@@ -4,7 +4,7 @@ import Taro from '@tarojs/taro'
 import { useState, useEffect } from 'react'
 import { storage } from '../../lib/storage'
 import { platform } from '../../utils/platform'
-import type { GameSettings } from '../../lib/types'
+import { GameSettings } from '../../lib/types'
 import './settings.scss'
 
 const DEFAULT_SETTINGS: GameSettings = {

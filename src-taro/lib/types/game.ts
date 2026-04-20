@@ -1,4 +1,4 @@
-import type { FigureScope } from './figure'
+import { FigureScope } from './figure'
 
 export type YesNoAnswer = '是' | '不是'
 

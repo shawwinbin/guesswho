@@ -1,7 +1,7 @@
-import type { FigureScope, HistoricalFigure, YesNoAnswer } from './types'
+import { FigureScope, HistoricalFigure, YesNoAnswer } from './types'
 import { figures } from '../data/figures'
 
-export { type FigureScope, type HistoricalFigure, type YesNoAnswer } from './types'
+export { FigureScope, HistoricalFigure, YesNoAnswer } from './types'
 
 export function filterFiguresByScope(scope: FigureScope): HistoricalFigure[] {
   switch (scope) {

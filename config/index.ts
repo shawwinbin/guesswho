@@ -3,6 +3,8 @@ const config = {
   projectName: 'history-figure-guess',
   date: '2026-4-20',
   designWidth: 750,
+  framework: 'react',
+  compiler: { type: 'webpack5', prebundle: { enable: false } },
   deviceRatio: {
     640: 2.34 / 2,
     750: 1,
@@ -27,6 +29,7 @@ const config = {
   h5: {
     publicPath: '/',
     staticDirectory: 'static',
+    prebundle: { enable: false },
     postcss: {
       autoprefixer: {
         enable: true,

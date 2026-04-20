@@ -1,5 +1,5 @@
 import Taro from '@tarojs/taro'
-import type { CreateSessionRequest, GameSessionSnapshot, GuessResponse, QuestionResponse } from './types'
+import { CreateSessionRequest, GameSessionSnapshot, GuessResponse, QuestionResponse } from './types'
 
 const API_BASE_URL = process.env.TARO_ENV === 'h5'
   ? ''

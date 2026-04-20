@@ -26,14 +26,18 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@babel/preset-react": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
     "@eslint/js": "^9.22.0",
     "@nutui/nutui-react-taro": "^3.0.19-cpp.26-beta.5",
     "@tarojs/cli": "^4.2.0",
     "@tarojs/components": "^4.2.0",
     "@tarojs/plugin-framework-react": "^4.2.0",
+    "@tarojs/plugin-platform-h5": "^4.2.0",
+    "@tarojs/plugin-platform-weapp": "^4.2.0",
     "@tarojs/runtime": "^4.2.0",
     "@tarojs/taro": "^4.2.0",
-    "@tarojs/webpack5-runner": "^4.0.0",
+    "@tarojs/webpack5-runner": "^4.2.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^14.3.0",
     "@types/react": "^18.3.0",
@@ -47,6 +51,7 @@
     "sass": "^1.99.0",
     "typescript": "~5.8.2",
     "vite": "^6.3.1",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "webpack": "^5.88.2"
   }
 }

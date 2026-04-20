@@ -1,4 +1,4 @@
-import type { FigureScope } from './types'
+import { FigureScope } from './types'
 
 export const SUGGESTED_QUESTIONS = [
   '他是中国人吗？',

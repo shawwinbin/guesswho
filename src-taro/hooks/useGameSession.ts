@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { createSession, fetchSession, submitQuestion, submitGuess } from '../lib/gameApi'
 import { storage } from '../lib/storage'
-import type { GameSessionSnapshot, GameSettings, QuestionAnswer, YesNoAnswer } from '../lib/types'
+import { GameSessionSnapshot, GameSettings, QuestionAnswer, YesNoAnswer } from '../lib/types'
 
 export type GamePhase = 'idle' | 'loading' | 'playing' | 'ended'
 
