@@ -6,9 +6,11 @@ import { AppError } from './lib/errors.js'
 import { PostgresGameEventRepository, PostgresGameSessionRepository } from './repositories/gameSessionRepository.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import { registerGameSessionRoutes } from './routes/gameSessions.js'
+import { registerVoiceRoutes } from './routes/voice.js'
 import { GameSessionService } from './services/gameSessionService.js'
 import { createHostLlmService } from './services/hostLlmService.js'
 import { createAuthService } from './services/authService.js'
+import { createVoiceService } from './services/voiceService.js'
 
 interface BuildAppOptions {
   corsOrigin?: string
@@ -46,6 +48,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   await registerGameSessionRoutes(app, gameSessionService)
   await registerAuthRoutes(app, createAuthService())
+  await registerVoiceRoutes(app, createVoiceService())
 
   return app
 }
