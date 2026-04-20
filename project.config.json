@@ -1,0 +1,15 @@
+{
+  "miniprogramRoot": "dist-taro/",
+  "projectname": "history-figure-guess",
+  "description": "历史人物猜谜小游戏",
+  "appid": "touristappid",
+  "setting": {
+    "urlCheck": true,
+    "es6": false,
+    "enhance": true,
+    "compileHotReLoad": false,
+    "postcss": false,
+    "minified": false
+  },
+  "compileType": "miniprogram"
+}
