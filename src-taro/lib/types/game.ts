@@ -7,6 +7,7 @@ export interface GameSettings {
   figureScope: FigureScope
   voiceMode: boolean
   continuousVoiceMode: boolean
+  autoStartContinuousVoice?: boolean
 }
 
 export interface QuestionAnswer {
