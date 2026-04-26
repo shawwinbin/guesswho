@@ -66,10 +66,18 @@ export interface GameEventRepository {
   listSessionEvents(options: ListSessionEventsOptions): Promise<GameEventRecord[]>
 }
 
+function parsePositiveInteger(value: unknown, fieldName: string): number {
+  if (!Number.isInteger(value) || Number(value) < 1) {
+    throw new Error(`Invalid ${fieldName}: expected integer >= 1`)
+  }
+
+  return Number(value)
+}
+
 function mapSessionRow(row: Record<string, unknown>): GameSessionRecord {
   return {
     id: String(row.id),
-    level: Number(row.level),
+    level: parsePositiveInteger(row.level, 'game_sessions.level'),
     status: row.status === 'ended' ? 'ended' : 'playing',
     questionLimit: Number(row.question_limit),
     questionCount: Number(row.question_count),

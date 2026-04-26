@@ -17,6 +17,7 @@ begin
     select 1
     from pg_constraint
     where conname = 'game_sessions_level_check'
+      and conrelid = 'game_sessions'::regclass
   ) then
     alter table game_sessions
       add constraint game_sessions_level_check check (level >= 1);

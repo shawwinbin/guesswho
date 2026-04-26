@@ -6,7 +6,7 @@ function createServiceStub(): Pick<GameSessionService, 'createSession' | 'getSes
   return {
     createSession: vi.fn(async () => ({
       sessionId: 'session-1',
-      level: 1,
+      level: 3,
       status: 'playing' as const,
       questionCount: 0,
       questionLimit: 20,
@@ -16,7 +16,7 @@ function createServiceStub(): Pick<GameSessionService, 'createSession' | 'getSes
     })),
     getSessionSnapshot: vi.fn(async () => ({
       sessionId: 'session-1',
-      level: 1,
+      level: 7,
       status: 'playing' as const,
       questionCount: 0,
       questionLimit: 20,
@@ -73,11 +73,39 @@ describe('game session routes', () => {
     })
 
     expect(response.statusCode).toBe(201)
+    expect(response.json()).toMatchObject({
+      sessionId: 'session-1',
+      level: 3,
+      status: 'playing',
+    })
     expect(service.createSession).toHaveBeenCalledWith({
       level: 3,
       questionLimit: 20,
       figureScope: 'all',
     })
+
+    await app.close()
+  })
+
+  it('returns level on restored session snapshots through the http api', async () => {
+    const service = createServiceStub()
+    const app = await buildApp({
+      corsOrigin: 'http://localhost:5173',
+      gameSessionService: service as GameSessionService,
+    })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/game-sessions/session-1',
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({
+      sessionId: 'session-1',
+      level: 7,
+      status: 'playing',
+    })
+    expect(service.getSessionSnapshot).toHaveBeenCalledWith('session-1')
 
     await app.close()
   })
