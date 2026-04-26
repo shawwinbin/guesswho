@@ -19,6 +19,8 @@ export interface GameState {
 }
 
 const SESSION_KEY = 'history-figure-guess-session'
+const SESSION_SAVED_AT_KEY = 'history-figure-guess-session-saved-at'
+const RESET_DATA_AT_KEY = 'history-figure-guess-reset-data-at'
 const INITIAL_STATE: GameState = {
   sessionId: null,
   phase: 'idle',
@@ -36,35 +38,22 @@ export function useGameSession(settings: GameSettings) {
   const [isLoading, setIsLoading] = useState(false)
   const [isRestoreComplete, setIsRestoreComplete] = useState(false)
 
+  const clearPersistedSession = useCallback(() => {
+    storage.remove(SESSION_KEY)
+    storage.remove(SESSION_SAVED_AT_KEY)
+  }, [])
+
+  const persistSession = useCallback((sessionId: string) => {
+    storage.set(SESSION_KEY, sessionId)
+    storage.set(SESSION_SAVED_AT_KEY, Date.now())
+  }, [])
+
   const resolveLevel = useCallback((snapshot?: GameSessionSnapshot) => {
     if (snapshot && Number.isInteger(snapshot.level) && snapshot.level >= 1) {
       return snapshot.level
     }
 
     return readLevelProgress().currentLevel
-  }, [])
-
-  useEffect(() => {
-    const savedSessionId = storage.get<string>(SESSION_KEY)
-    if (!savedSessionId) {
-      setIsRestoreComplete(true)
-      return
-    }
-
-    const restore = async () => {
-      setIsLoading(true)
-      try {
-        const snapshot = await fetchSession(savedSessionId)
-        applySnapshot(snapshot)
-      } catch {
-        storage.remove(SESSION_KEY)
-      } finally {
-        setIsLoading(false)
-        setIsRestoreComplete(true)
-      }
-    }
-
-    restore()
   }, [])
 
   const applySnapshot = useCallback((snapshot: GameSessionSnapshot) => {
@@ -79,8 +68,39 @@ export function useGameSession(settings: GameSettings) {
       revealedName: snapshot.revealedName ?? null,
       remainingQuestions: snapshot.remainingQuestions
     })
-    storage.set(SESSION_KEY, snapshot.sessionId)
-  }, [resolveLevel])
+    persistSession(snapshot.sessionId)
+  }, [persistSession, resolveLevel])
+
+  useEffect(() => {
+    const savedSessionId = storage.get<string>(SESSION_KEY)
+    if (!savedSessionId) {
+      setIsRestoreComplete(true)
+      return
+    }
+
+    const sessionSavedAt = storage.get<number>(SESSION_SAVED_AT_KEY)
+    const resetDataAt = storage.get<number>(RESET_DATA_AT_KEY)
+    if (typeof resetDataAt === 'number' && (!Number.isFinite(sessionSavedAt) || sessionSavedAt < resetDataAt)) {
+      clearPersistedSession()
+      setIsRestoreComplete(true)
+      return
+    }
+
+    const restore = async () => {
+      setIsLoading(true)
+      try {
+        const snapshot = await fetchSession(savedSessionId)
+        applySnapshot(snapshot)
+      } catch {
+        clearPersistedSession()
+      } finally {
+        setIsLoading(false)
+        setIsRestoreComplete(true)
+      }
+    }
+
+    restore()
+  }, [applySnapshot, clearPersistedSession])
 
   const startGame = useCallback(async (level: number) => {
     const nextLevel = Number.isInteger(level) && level >= 1 ? level : resolveLevel()
@@ -96,11 +116,11 @@ export function useGameSession(settings: GameSettings) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : '启动失败'
       setState(prev => ({ ...prev, phase: 'idle', errorMsg: msg }))
-      storage.remove(SESSION_KEY)
+      clearPersistedSession()
     } finally {
       setIsLoading(false)
     }
-  }, [applySnapshot, resolveLevel, settings])
+  }, [applySnapshot, clearPersistedSession, resolveLevel, settings])
 
   const askQuestion = useCallback(async (question: string) => {
     if (!state.sessionId || state.phase !== 'playing') return
@@ -146,10 +166,10 @@ export function useGameSession(settings: GameSettings) {
 
   const restart = useCallback(async (levelOverride?: number) => {
     const nextLevel = levelOverride ?? state.level ?? resolveLevel()
-    storage.remove(SESSION_KEY)
+    clearPersistedSession()
     setState(INITIAL_STATE)
     await startGame(nextLevel)
-  }, [resolveLevel, startGame, state.level])
+  }, [clearPersistedSession, resolveLevel, startGame, state.level])
 
   const clearError = useCallback(() => setState(prev => ({ ...prev, errorMsg: null })), [])
 

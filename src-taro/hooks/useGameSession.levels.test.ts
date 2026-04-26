@@ -6,6 +6,8 @@ import { LEVEL_PROGRESS_KEY } from '../lib/levelProgress'
 import type { GameSessionSnapshot, GameSettings, LevelProgress } from '../lib/types'
 
 const SESSION_KEY = 'history-figure-guess-session'
+const SESSION_SAVED_AT_KEY = 'history-figure-guess-session-saved-at'
+const RESET_DATA_AT_KEY = 'history-figure-guess-reset-data-at'
 
 const {
   createSessionMock,
@@ -175,6 +177,24 @@ describe('useGameSession level wiring', () => {
     await waitFor(() => {
       expect(result.current.isRestoreComplete).toBe(true)
     })
+  })
+
+  it('invalidates a saved round when reset-data was triggered after the round was saved', async () => {
+    storageGetMock.mockImplementation((key: string) => {
+      if (key === SESSION_KEY) return 'stale-session'
+      if (key === SESSION_SAVED_AT_KEY) return 100
+      if (key === RESET_DATA_AT_KEY) return 200
+      return null
+    })
+
+    renderHook(() => useGameSession(settings))
+
+    await waitFor(() => {
+      expect(fetchSessionMock).not.toHaveBeenCalled()
+    })
+
+    expect(storageRemoveMock).toHaveBeenCalledWith(SESSION_KEY)
+    expect(storageRemoveMock).toHaveBeenCalledWith(SESSION_SAVED_AT_KEY)
   })
 
   it('restart preserves the current active level when no override is provided', async () => {

@@ -10,6 +10,8 @@ import './settings.scss'
 
 const SETTINGS_STORAGE_KEY = 'game-settings'
 const SESSION_STORAGE_KEY = 'history-figure-guess-session'
+const SESSION_SAVED_AT_KEY = 'history-figure-guess-session-saved-at'
+const RESET_DATA_AT_KEY = 'history-figure-guess-reset-data-at'
 const WECHAT_OPENID_STORAGE_KEY = 'wechat-openid'
 const WECHAT_USERINFO_STORAGE_KEY = 'wechat-userinfo'
 
@@ -40,6 +42,7 @@ export default function SettingsPage() {
 
   const clearSessionOnly = () => {
     storage.remove(SESSION_STORAGE_KEY)
+    storage.remove(SESSION_SAVED_AT_KEY)
     Toast.show('当前对局缓存已清除')
   }
 
@@ -91,6 +94,7 @@ export default function SettingsPage() {
         storage.remove(WECHAT_OPENID_STORAGE_KEY)
         storage.remove(WECHAT_USERINFO_STORAGE_KEY)
         clearLevelProgress()
+        storage.set(RESET_DATA_AT_KEY, Date.now())
         setSettings(DEFAULT_SETTINGS)
         setIsLoggedIn(false)
         setUserInfo(null)

@@ -11,6 +11,8 @@ type DialogOptions = {
   onConfirm?: () => void
 }
 
+const RESET_DATA_AT_KEY = 'history-figure-guess-reset-data-at'
+
 const {
   dialogConfirmMock,
   navigateBackMock,
@@ -80,7 +82,7 @@ describe('SettingsPage level reset flows', () => {
     })
   })
 
-  it('resets settings, login data, and level progress without clearing the active round session', () => {
+  it('resets settings, login data, and level progress while invalidating any previously saved round restore', () => {
     render(<SettingsPage />)
 
     fireEvent.click(screen.getByText('重置数据（设置/登录/关卡）'))
@@ -95,7 +97,7 @@ describe('SettingsPage level reset flows', () => {
     expect(storageRemoveMock).toHaveBeenCalledWith('wechat-userinfo')
     expect(storageRemoveMock).toHaveBeenCalledWith(LEVEL_PROGRESS_KEY)
     expect(storageRemoveMock).not.toHaveBeenCalledWith('history-figure-guess-session')
-    expect(storageSetMock).not.toHaveBeenCalled()
+    expect(storageSetMock).toHaveBeenCalledWith(RESET_DATA_AT_KEY, expect.any(Number))
     expect(toastShowMock).toHaveBeenCalledWith('数据已清除')
   })
 })
