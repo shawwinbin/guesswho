@@ -197,6 +197,63 @@ describe('useGameSession level wiring', () => {
     expect(storageRemoveMock).toHaveBeenCalledWith(SESSION_SAVED_AT_KEY)
   })
 
+  it('does not restore an ended snapshot as an active round on a later mount', async () => {
+    storageGetMock.mockImplementation((key: string) => {
+      if (key === SESSION_KEY) return 'finished-session'
+      if (key === SESSION_SAVED_AT_KEY) return 300
+      return null
+    })
+    fetchSessionMock.mockResolvedValue(createSnapshot({
+      sessionId: 'finished-session',
+      status: 'ended',
+      revealedName: '李白',
+      guesses: [{ guess: '李白', isCorrect: true }],
+      remainingQuestions: 0,
+    }))
+
+    const { result } = renderHook(() => useGameSession(settings))
+
+    await waitFor(() => {
+      expect(result.current.isRestoreComplete).toBe(true)
+    })
+
+    expect(fetchSessionMock).toHaveBeenCalledWith('finished-session')
+    expect(result.current.state).toEqual(expect.objectContaining({
+      sessionId: null,
+      phase: 'idle',
+      level: null,
+      revealedName: null,
+    }))
+    expect(storageRemoveMock).toHaveBeenCalledWith(SESSION_KEY)
+    expect(storageRemoveMock).toHaveBeenCalledWith(SESSION_SAVED_AT_KEY)
+  })
+
+  it('clears the persisted active-round session when a guess ends the round', async () => {
+    createSessionMock.mockResolvedValue(createSnapshot({ sessionId: 'session-1', level: 4 }))
+    submitGuessMock.mockResolvedValue({
+      isCorrect: true,
+      revealedName: '李白',
+      status: 'ended',
+    })
+
+    const { result } = renderHook(() => useGameSession(settings))
+
+    await act(async () => {
+      await result.current.startGame(4)
+    })
+
+    storageRemoveMock.mockClear()
+
+    await act(async () => {
+      await result.current.makeGuess('李白')
+    })
+
+    expect(result.current.state.phase).toBe('ended')
+    expect(result.current.state.revealedName).toBe('李白')
+    expect(storageRemoveMock).toHaveBeenCalledWith(SESSION_KEY)
+    expect(storageRemoveMock).toHaveBeenCalledWith(SESSION_SAVED_AT_KEY)
+  })
+
   it('restart preserves the current active level when no override is provided', async () => {
     createSessionMock
       .mockResolvedValueOnce(createSnapshot({ sessionId: 'session-1', level: 4 }))

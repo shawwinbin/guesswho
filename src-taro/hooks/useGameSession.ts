@@ -90,6 +90,11 @@ export function useGameSession(settings: GameSettings) {
       setIsLoading(true)
       try {
         const snapshot = await fetchSession(savedSessionId)
+        if (snapshot.status === 'ended') {
+          clearPersistedSession()
+          setState(INITIAL_STATE)
+          return
+        }
         applySnapshot(snapshot)
       } catch {
         clearPersistedSession()
@@ -135,6 +140,9 @@ export function useGameSession(settings: GameSettings) {
         remainingQuestions: res.remainingQuestions,
         revealedName: res.revealedName ?? prev.revealedName
       }))
+      if (res.status === 'ended') {
+        clearPersistedSession()
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : '提问失败'
       setState(prev => ({ ...prev, errorMsg: msg }))
@@ -156,6 +164,7 @@ export function useGameSession(settings: GameSettings) {
         isWinner: res.isCorrect,
         revealedName: res.revealedName
       }))
+      clearPersistedSession()
     } catch (err) {
       const msg = err instanceof Error ? err.message : '猜测失败'
       setState(prev => ({ ...prev, errorMsg: msg }))

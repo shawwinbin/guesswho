@@ -36,6 +36,17 @@ const mockGameState: GameState = {
   remainingQuestions: 20,
 }
 
+const mockGameSession = {
+  state: mockGameState,
+  isLoading: false,
+  isRestoreComplete: true,
+  startGame: startGameMock,
+  askQuestion: askQuestionMock,
+  makeGuess: makeGuessMock,
+  restart: restartMock,
+  clearError: clearErrorMock,
+}
+
 vi.mock('@tarojs/taro', () => ({
   default: {
     navigateTo: navigateToMock,
@@ -69,16 +80,7 @@ vi.mock('../../hooks/useVoiceGame', () => ({
 }))
 
 vi.mock('../../hooks/useGameSession', () => ({
-  useGameSession: () => ({
-    state: mockGameState,
-    isLoading: false,
-    isRestoreComplete: true,
-    startGame: startGameMock,
-    askQuestion: askQuestionMock,
-    makeGuess: makeGuessMock,
-    restart: restartMock,
-    clearError: clearErrorMock,
-  }),
+  useGameSession: () => mockGameSession,
 }))
 
 vi.mock('../../components/QuestionForm', () => ({
@@ -117,6 +119,8 @@ describe('GamePage level HUD', () => {
     mockGameState.errorMsg = null
     mockGameState.revealedName = null
     mockGameState.remainingQuestions = 20
+    mockGameSession.isLoading = false
+    mockGameSession.isRestoreComplete = true
     storageGetMock.mockImplementation((key: string) => {
       if (key === LEVEL_PROGRESS_KEY) {
         return {
@@ -161,6 +165,24 @@ describe('GamePage level HUD', () => {
     expect(await screen.findByText('LEVEL 5')).toBeInTheDocument()
     expect(screen.getByText('当前已解锁至第8关')).toBeInTheDocument()
     expect(screen.queryByText('胜利后解锁第6关')).not.toBeInTheDocument()
+  })
+
+  it('auto-starts only once per mount even if the initial start falls back to idle after a failure', () => {
+    mockGameState.sessionId = null
+    mockGameState.phase = 'idle'
+
+    const { rerender } = render(<GamePage />)
+
+    expect(startGameMock).toHaveBeenCalledTimes(1)
+    expect(startGameMock).toHaveBeenCalledWith(7)
+
+    mockGameState.phase = 'loading'
+    rerender(<GamePage />)
+
+    mockGameState.phase = 'idle'
+    rerender(<GamePage />)
+
+    expect(startGameMock).toHaveBeenCalledTimes(1)
   })
 
   it('navigates to result with the played session level instead of the HUD fallback level', () => {

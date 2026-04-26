@@ -1,6 +1,6 @@
 import { View, Text, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useGameSession } from '../../hooks/useGameSession'
 import { QuestionForm } from '../../components/QuestionForm'
 import { GuessForm } from '../../components/GuessForm'
@@ -26,6 +26,7 @@ export default function GamePage() {
   const { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, restart, clearError } = useGameSession(settings)
   const voice = useVoiceGame({ onTranscript: (text) => askQuestion(text) })
   const [pendingGuess, setPendingGuess] = useState<string | null>(null)
+  const hasAttemptedInitialStartRef = useRef(false)
   const levelProgress = readLevelProgress()
   const activeLevel = state.level ?? levelProgress.currentLevel
   const levelTitle = getLevelTitle(activeLevel)
@@ -39,7 +40,13 @@ export default function GamePage() {
 
   useEffect(() => {
     if (!isRestoreComplete) return
-    if (state.phase === 'idle') startGame(readLevelProgress().currentLevel)
+    if (hasAttemptedInitialStartRef.current) return
+
+    hasAttemptedInitialStartRef.current = true
+
+    if (state.phase === 'idle') {
+      startGame(readLevelProgress().currentLevel)
+    }
   }, [isRestoreComplete, startGame, state.phase])
 
   useEffect(() => {

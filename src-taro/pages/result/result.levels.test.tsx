@@ -203,4 +203,25 @@ describe('ResultPage level progression', () => {
       duration: 2000,
     })
   })
+
+  it('routes the primary CTA back into the game page for the next round', () => {
+    renderWithParams(
+      { winner: 'true', name: '李白', count: '6', level: '4' },
+      {
+        storedProgress: createProgress({
+          currentLevel: 4,
+          highestUnlockedLevel: 4,
+          highestClearedLevel: 3,
+          levelStreak: 1,
+          lastResult: 'lose',
+        }),
+      },
+    )
+
+    fireEvent.click(screen.getByText('挑战第5关'))
+
+    expect(redirectToMock).toHaveBeenCalledWith({
+      url: '/pages/game/game',
+    })
+  })
 })
