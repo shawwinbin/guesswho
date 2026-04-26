@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
-import type { ReactNode } from 'react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { StrictMode, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LEVEL_PROGRESS_KEY } from '../../lib/levelProgress'
 import type { LevelProgress } from '../../lib/types'
 
-const { redirectToMock, storageGetMock, storageSetMock, routerState } = vi.hoisted(() => ({
+const { redirectToMock, showToastMock, storageGetMock, storageSetMock, routerState } = vi.hoisted(() => ({
   redirectToMock: vi.fn(),
+  showToastMock: vi.fn(),
   storageGetMock: vi.fn(),
   storageSetMock: vi.fn(),
   routerState: {
@@ -18,6 +19,7 @@ const { redirectToMock, storageGetMock, storageSetMock, routerState } = vi.hoist
 vi.mock('@tarojs/taro', () => ({
   default: {
     redirectTo: redirectToMock,
+    showToast: showToastMock,
   },
   useRouter: () => routerState,
 }))
@@ -47,22 +49,45 @@ function createProgress(overrides: Partial<LevelProgress> = {}): LevelProgress {
   }
 }
 
-function renderWithParams(params: Record<string, string | undefined>, storedProgress = createProgress()): void {
+function getProgressWrites(): unknown[][] {
+  return storageSetMock.mock.calls.filter(([key]) => key === LEVEL_PROGRESS_KEY)
+}
+
+function renderWithParams(
+  params: Record<string, string | undefined>,
+  options: {
+    storedProgress?: LevelProgress
+    strictMode?: boolean
+  } = {},
+): void {
+  const { storedProgress = createProgress(), strictMode = false } = options
+  const storageState = new Map<string, unknown>([
+    [LEVEL_PROGRESS_KEY, storedProgress],
+  ])
+
   routerState.params = params
   storageGetMock.mockImplementation((key: string) => {
-    if (key === LEVEL_PROGRESS_KEY) {
-      return storedProgress
-    }
-
-    return null
+    return storageState.has(key) ? storageState.get(key) : null
+  })
+  storageSetMock.mockImplementation((key: string, value: unknown) => {
+    storageState.set(key, value)
   })
 
-  render(<ResultPage />)
+  const ui = strictMode ? (
+    <StrictMode>
+      <ResultPage />
+    </StrictMode>
+  ) : (
+    <ResultPage />
+  )
+
+  render(ui)
 }
 
 describe('ResultPage level progression', () => {
   beforeEach(() => {
     redirectToMock.mockReset()
+    showToastMock.mockReset()
     storageGetMock.mockReset()
     storageSetMock.mockReset()
     routerState.params = {}
@@ -82,12 +107,21 @@ describe('ResultPage level progression', () => {
 
     expect(screen.getByText('第4关通关')).toBeInTheDocument()
     expect(screen.getByText('挑战第5关')).toBeInTheDocument()
-    expect(storageSetMock).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('提问次数')).toBeInTheDocument()
+    expect(screen.getByText('6/20')).toBeInTheDocument()
+    expect(screen.getByText('剩余机会')).toBeInTheDocument()
+    expect(screen.getByText('14次')).toBeInTheDocument()
+    expect(screen.getByText('连胜记录')).toBeInTheDocument()
+    expect(screen.queryByText('01:24')).not.toBeInTheDocument()
+    expect(screen.queryByText('6/5')).not.toBeInTheDocument()
+    expect(screen.queryByText('🪙 +50')).not.toBeInTheDocument()
+    expect(screen.queryByText('✹ +1')).not.toBeInTheDocument()
+    expect(getProgressWrites()).toHaveLength(1)
     expect(storageSetMock).toHaveBeenCalledWith(LEVEL_PROGRESS_KEY, createProgress({
       currentLevel: 5,
       highestUnlockedLevel: 5,
       highestClearedLevel: 4,
-      levelStreak: 2,
+      levelStreak: 1,
       lastResult: 'win',
     }))
   })
@@ -106,7 +140,7 @@ describe('ResultPage level progression', () => {
 
     expect(screen.getByText('已为你保留至第4关')).toBeInTheDocument()
     expect(screen.getByText('从第4关继续')).toBeInTheDocument()
-    expect(storageSetMock).toHaveBeenCalledTimes(1)
+    expect(getProgressWrites()).toHaveLength(1)
     expect(storageSetMock).toHaveBeenCalledWith(LEVEL_PROGRESS_KEY, createProgress({
       currentLevel: 4,
       highestUnlockedLevel: 4,
@@ -114,5 +148,55 @@ describe('ResultPage level progression', () => {
       levelStreak: 0,
       lastResult: 'lose',
     }))
+  })
+
+  it('does not apply progression twice on the same logical result under StrictMode', () => {
+    renderWithParams(
+      { winner: 'true', name: '李白', count: '6', level: '4' },
+      {
+        storedProgress: createProgress({
+          currentLevel: 4,
+          highestUnlockedLevel: 4,
+          highestClearedLevel: 3,
+          levelStreak: 1,
+          lastResult: 'lose',
+        }),
+        strictMode: true,
+      },
+    )
+
+    expect(getProgressWrites()).toHaveLength(1)
+    expect(getProgressWrites()[0]).toEqual([
+      LEVEL_PROGRESS_KEY,
+      expect.objectContaining({
+        currentLevel: 5,
+        highestUnlockedLevel: 5,
+        highestClearedLevel: 4,
+        lastResult: 'win',
+      }),
+    ])
+  })
+
+  it('shows a share instruction toast on the win share button', () => {
+    renderWithParams(
+      { winner: 'true', name: '李白', count: '6', level: '4' },
+      {
+        storedProgress: createProgress({
+          currentLevel: 4,
+          highestUnlockedLevel: 4,
+          highestClearedLevel: 3,
+          levelStreak: 1,
+          lastResult: 'lose',
+        }),
+      },
+    )
+
+    fireEvent.click(screen.getByText('分享成就'))
+
+    expect(showToastMock).toHaveBeenCalledWith({
+      title: '请使用右上角菜单分享战绩',
+      icon: 'none',
+      duration: 2000,
+    })
   })
 })

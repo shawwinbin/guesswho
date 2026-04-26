@@ -1,6 +1,6 @@
 import { View, Text } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { figures } from '../../data/figures'
 import {
   applyLevelResult,
@@ -12,6 +12,8 @@ import {
 import { storage } from '../../lib/storage'
 import { GameSettings, HistoricalFigure, LevelProgress } from '../../lib/types'
 import './result.scss'
+
+const RESULT_PROGRESS_APPLY_KEY = 'history-figure-guess-result-progress-apply'
 
 const DEFAULT_SETTINGS: GameSettings = {
   questionLimit: 20,
@@ -74,6 +76,10 @@ function parseLevel(value: string | undefined, fallbackLevel: number): number {
   return Number.isInteger(parsed) && parsed >= 1 ? parsed : fallbackLevel
 }
 
+function buildResultKey(result: 'win' | 'lose', revealedName: string, questionCount: number, playedLevel: number): string {
+  return `${result}:${revealedName}:${questionCount}:${playedLevel}`
+}
+
 function buildResultProgress(storedProgress: LevelProgress, playedLevel: number, result: 'win' | 'lose'): LevelProgress {
   const highestUnlockedLevel = Math.max(storedProgress.highestUnlockedLevel, playedLevel)
   const baseProgress: LevelProgress = {
@@ -97,6 +103,19 @@ function buildResultProgress(storedProgress: LevelProgress, playedLevel: number,
   }
 }
 
+function resolveResultProgress(
+  storedProgress: LevelProgress,
+  playedLevel: number,
+  result: 'win' | 'lose',
+  resultKey: string,
+): LevelProgress {
+  if (storage.get<string>(RESULT_PROGRESS_APPLY_KEY) === resultKey) {
+    return storedProgress
+  }
+
+  return buildResultProgress(storedProgress, playedLevel, result)
+}
+
 export default function ResultPage() {
   const router = useRouter()
   const winnerParam = router.params.winner
@@ -108,19 +127,16 @@ export default function ResultPage() {
   const questionCount = parseCount(countParam)
   const resultType = isWinner ? 'win' : 'lose'
   const [showHints, setShowHints] = useState(false)
-  const [progress, setProgress] = useState<LevelProgress>(() => {
-    const storedProgress = readLevelProgress()
-    const playedLevel = parseLevel(levelParam, storedProgress.currentLevel)
-    return buildResultProgress(storedProgress, playedLevel, resultType)
-  })
-  const appliedResultKeyRef = useRef<string | null>(null)
-
   const settings = useMemo(() => storage.get<GameSettings>('game-settings') || DEFAULT_SETTINGS, [])
+  const storedProgress = readLevelProgress()
+  const playedLevel = parseLevel(levelParam, storedProgress.currentLevel)
+  const resultKey = buildResultKey(resultType, revealedName, questionCount, playedLevel)
+  const progress = resolveResultProgress(storedProgress, playedLevel, resultType, resultKey)
   const revealedFigure = useMemo(() => findFigure(revealedName), [revealedName])
   const figureCaption = useMemo(() => buildFigureCaption(revealedFigure, revealedName), [revealedFigure, revealedName])
   const hintItems = useMemo(() => buildHintItems(revealedFigure), [revealedFigure])
   const loseResultBadge = questionCount >= settings.questionLimit ? '机会用尽' : '猜错终局'
-  const playedLevel = parseLevel(levelParam, progress.currentLevel)
+  const remainingQuestions = Math.max(settings.questionLimit - questionCount, 0)
   const resumeLevel = progress.currentLevel
   const progressTitle = getLevelTitle(resumeLevel)
   const progressBannerLabel = isWinner ? `第${playedLevel}关通关` : `第${playedLevel}关未通关`
@@ -129,22 +145,23 @@ export default function ResultPage() {
     : `已为你保留至第${resumeLevel}关`
   const primaryCtaLabel = isWinner ? `挑战第${resumeLevel}关` : `从第${resumeLevel}关继续`
   const ribbonLevels = buildVisibleLevels(progress, 2)
+  const winStatItems = [
+    { icon: '◔', label: '提问次数', value: `${questionCount}/${settings.questionLimit}` },
+    { icon: '◉', label: '剩余机会', value: `${remainingQuestions}次` },
+    { icon: '⬈', label: '已解锁', value: `第${progress.highestUnlockedLevel}关` },
+    { icon: '✦', label: '连胜记录', value: `${progress.levelStreak}连胜` },
+  ]
 
   useEffect(() => {
-    const storedProgress = readLevelProgress()
-    const nextPlayedLevel = parseLevel(levelParam, storedProgress.currentLevel)
-    const nextProgress = buildResultProgress(storedProgress, nextPlayedLevel, resultType)
-    const resultKey = `${resultType}:${nameParam || ''}:${countParam || ''}:${levelParam || ''}`
+    const alreadyApplied = storage.get<string>(RESULT_PROGRESS_APPLY_KEY) === resultKey
 
-    setProgress(nextProgress)
-
-    if (appliedResultKeyRef.current === resultKey) {
+    if (alreadyApplied) {
       return
     }
 
-    appliedResultKeyRef.current = resultKey
-    writeLevelProgress(nextProgress)
-  }, [countParam, levelParam, nameParam, resultType])
+    writeLevelProgress(progress)
+    storage.set(RESULT_PROGRESS_APPLY_KEY, resultKey)
+  }, [progress, resultKey])
 
   useEffect(() => {
     setShowHints(false)
@@ -152,6 +169,13 @@ export default function ResultPage() {
 
   const handleRestart = () => Taro.redirectTo({ url: '/pages/game/game' })
   const handleBackHome = () => Taro.redirectTo({ url: '/pages/index/index' })
+  const handleShare = () => {
+    Taro.showToast({
+      title: '请使用右上角菜单分享战绩',
+      icon: 'none',
+      duration: 2000,
+    })
+  }
 
   return (
     <View className="result-page mini-game-page">
@@ -243,27 +267,13 @@ export default function ResultPage() {
 
         {isWinner && (
           <View className="result-stats">
-            <View className="result-stat">
-              <Text className="result-stat__icon">◔</Text>
-              <Text className="result-stat__label">用时</Text>
-              <Text className="result-stat__value">01:24</Text>
-            </View>
-            <View className="result-stat">
-              <Text className="result-stat__icon">◉</Text>
-              <Text className="result-stat__label">线索消耗</Text>
-              <Text className="result-stat__value">{`${Math.max(questionCount, 1)}/5`}</Text>
-            </View>
-          </View>
-        )}
-
-        {isWinner && (
-          <View className="reward-strip">
-            <View className="reward-chip reward-chip--coin">
-              <Text>🪙 +50</Text>
-            </View>
-            <View className="reward-chip reward-chip--badge">
-              <Text>✹ +1</Text>
-            </View>
+            {winStatItems.map(item => (
+              <View key={item.label} className="result-stat">
+                <Text className="result-stat__icon">{item.icon}</Text>
+                <Text className="result-stat__label">{item.label}</Text>
+                <Text className="result-stat__value">{item.value}</Text>
+              </View>
+            ))}
           </View>
         )}
       </View>
@@ -278,7 +288,7 @@ export default function ResultPage() {
             <Text className="result-secondary-button__text">返回首页</Text>
           </View>
           {isWinner ? (
-            <View className="result-share-button">
+            <View className="result-share-button" onClick={handleShare}>
               <Text className="result-share-button__text">分享成就</Text>
             </View>
           ) : (

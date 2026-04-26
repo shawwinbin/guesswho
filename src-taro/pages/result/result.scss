@@ -406,26 +406,22 @@
 }
 
 .result-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
   margin-top: 22px;
-  border: 3px solid rgba(43, 26, 22, 0.14);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.58);
-  overflow: hidden;
 }
 
 .result-stat {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
   padding: 18px 20px;
-}
-
-.result-stat + .result-stat {
-  border-top: 2px solid rgba(43, 26, 22, 0.14);
+  border: 3px solid rgba(43, 26, 22, 0.14);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 7px 0 rgba(190, 156, 91, 0.3);
 }
 
 .result-stat__icon {
@@ -442,34 +438,6 @@
   font-size: 28px;
   font-weight: 900;
   color: #c84a2d;
-}
-
-.reward-strip {
-  display: flex;
-  gap: 14px;
-  justify-content: center;
-  margin-top: 18px;
-}
-
-.reward-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 118px;
-  height: 46px;
-  padding: 0 16px;
-  border: 3px solid var(--mg-line);
-  border-radius: 999px;
-  font-size: 20px;
-  font-weight: 900;
-}
-
-.reward-chip--coin {
-  background: linear-gradient(180deg, #ffe56d 0%, var(--mg-gold) 82%);
-}
-
-.reward-chip--badge {
-  background: linear-gradient(180deg, #fffaf2 0%, #ebe1cf 100%);
 }
 
 .result-actions {
