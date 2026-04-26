@@ -210,7 +210,7 @@ export const figures: HistoricalFigure[] = [
     gender: '女',
     region: '中国',
     keywords: ['女皇帝', '周', '洛阳', '科举', '酷吏'],
-    difficulty: 2,
+    difficulty: 1,
     isAlive: false,
     isChinese: true,
     isMilitaryLeader: false,

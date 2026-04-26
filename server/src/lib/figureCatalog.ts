@@ -56,8 +56,11 @@ export function filterFiguresByScopeAndLevel(scope: FigureScope, level: number):
   return []
 }
 
-export function selectRandomFigure(scope: FigureScope, level = 1): HistoricalFigure {
-  const candidates = filterFiguresByScopeAndLevel(scope, level)
+export function selectRandomFigure(scope: FigureScope, level?: number): HistoricalFigure {
+  const candidates = level === undefined
+    ? filterFiguresByScope(scope)
+    : filterFiguresByScopeAndLevel(scope, level)
+
   if (candidates.length === 0) {
     throw new Error(`No figures available for scope: ${scope}`)
   }

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { FigureScope } from '../types/figure.js'
 import {
   filterFiguresByScope,
   filterFiguresByScopeAndLevel,
@@ -7,6 +8,9 @@ import {
 } from './figureCatalog.js'
 
 describe('figureCatalog', () => {
+  const publicScopes: FigureScope[] = ['all', 'poet', 'emperor', 'military', 'philosopher', 'female', 'tang-song']
+  const representativeLevels = [1, 4, 7, 11, 16]
+
   afterEach(() => {
     vi.restoreAllMocks()
   })
@@ -51,6 +55,16 @@ describe('figureCatalog', () => {
     expect(fallbackEmperors.every(figure => figure.difficulty === 4)).toBe(true)
   })
 
+  it('returns a non-empty level pool for every public scope at representative levels', () => {
+    for (const scope of publicScopes) {
+      for (const level of representativeLevels) {
+        const figures = filterFiguresByScopeAndLevel(scope, level)
+
+        expect(figures, `scope=${scope} level=${level}`).not.toHaveLength(0)
+      }
+    }
+  })
+
   it('selects different figures when random values point at different indices', () => {
     vi.spyOn(Math, 'random')
       .mockReturnValueOnce(0)
@@ -69,5 +83,20 @@ describe('figureCatalog', () => {
 
     expect(figure.role).toBe('皇帝')
     expect(figure.difficulty).toBe(4)
+  })
+
+  it('keeps omitted-level selection compatible for every public scope', () => {
+    for (const scope of publicScopes) {
+      expect(() => selectRandomFigure(scope), `scope=${scope}`).not.toThrow()
+    }
+  })
+
+  it('uses the full scoped catalog when level is omitted', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+
+    const femaleFigures = filterFiguresByScope('female')
+    const selectedFigure = selectRandomFigure('female')
+
+    expect(selectedFigure).toEqual(femaleFigures[femaleFigures.length - 1])
   })
 })
