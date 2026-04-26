@@ -68,6 +68,24 @@ describe('levelProgress', () => {
     })
   })
 
+  it('preserves highest cleared progress when replaying an older unlocked level', () => {
+    storageGetMock.mockReturnValueOnce({
+      currentLevel: 3,
+      highestUnlockedLevel: 6,
+      highestClearedLevel: 5,
+      levelStreak: 0,
+      lastResult: 'lose',
+    })
+
+    expect(readLevelProgress()).toEqual<LevelProgress>({
+      currentLevel: 3,
+      highestUnlockedLevel: 6,
+      highestClearedLevel: 5,
+      levelStreak: 0,
+      lastResult: 'lose',
+    })
+  })
+
   it('writes and clamps the current level through storage helpers', () => {
     storageGetMock.mockReturnValueOnce({
       currentLevel: 2,
@@ -82,7 +100,7 @@ describe('levelProgress', () => {
     expect(updated).toEqual({
       currentLevel: 3,
       highestUnlockedLevel: 3,
-      highestClearedLevel: 1,
+      highestClearedLevel: 2,
       levelStreak: 1,
       lastResult: 'win',
     })
@@ -179,5 +197,20 @@ describe('levelProgress', () => {
     )
 
     expect(levels).toEqual([1, 2, 3, 4])
+  })
+
+  it('builds visible levels near the right edge without exceeding unlocked bounds', () => {
+    const levels = buildVisibleLevels(
+      {
+        currentLevel: 11,
+        highestUnlockedLevel: 12,
+        highestClearedLevel: 10,
+        levelStreak: 2,
+        lastResult: 'win',
+      },
+      2,
+    )
+
+    expect(levels).toEqual([8, 9, 10, 11, 12])
   })
 })

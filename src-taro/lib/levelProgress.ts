@@ -58,7 +58,7 @@ export function readLevelProgress(): LevelProgress {
 
   const currentLevel = Math.min(progress.currentLevel, progress.highestUnlockedLevel)
   const highestUnlockedLevel = Math.max(progress.highestUnlockedLevel, currentLevel)
-  const highestClearedLevel = Math.min(progress.highestClearedLevel, currentLevel - 1, highestUnlockedLevel - 1)
+  const highestClearedLevel = Math.min(progress.highestClearedLevel, highestUnlockedLevel - 1)
 
   return {
     currentLevel,
