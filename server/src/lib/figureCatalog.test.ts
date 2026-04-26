@@ -94,12 +94,26 @@ describe('figureCatalog', () => {
   })
 
   it('treats an omitted level as level 1 selection', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.99)
-
     const expectedPool = filterFiguresByScopeAndLevel('all', 1)
+    const fullScopeFigures = filterFiguresByScope('all')
+    const randomValue = Array.from({ length: expectedPool.length }, (_, index) => (index + 0.5) / expectedPool.length)
+      .find(value => {
+        const levelIndex = Math.floor(value * expectedPool.length)
+        const fullCatalogIndex = Math.floor(value * fullScopeFigures.length)
+
+        return expectedPool[levelIndex].id !== fullScopeFigures[fullCatalogIndex].id
+      })
+
+    expect(randomValue).toBeDefined()
+
+    vi.spyOn(Math, 'random').mockReturnValue(randomValue!)
+
+    const expectedIndex = Math.floor(randomValue! * expectedPool.length)
+    const fullCatalogIndex = Math.floor(randomValue! * fullScopeFigures.length)
     const selectedFigure = selectRandomFigure('all')
 
-    expect(selectedFigure).toEqual(expectedPool[expectedPool.length - 1])
+    expect(selectedFigure).toEqual(expectedPool[expectedIndex])
+    expect(selectedFigure).not.toEqual(fullScopeFigures[fullCatalogIndex])
     expect(selectedFigure.difficulty).toBe(1)
   })
 })
