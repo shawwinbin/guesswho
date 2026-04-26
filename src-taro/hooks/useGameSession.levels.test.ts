@@ -152,4 +152,79 @@ describe('useGameSession level wiring', () => {
 
     expect(result.current.state.level).toBe(1)
   })
+
+  it('reports restore completion only after an in-flight restore finishes', async () => {
+    let resolveFetch: ((snapshot: GameSessionSnapshot) => void) | null = null
+
+    storageGetMock.mockImplementation((key: string) => {
+      if (key === SESSION_KEY) return 'saved-session'
+      return null
+    })
+    fetchSessionMock.mockImplementation(() => new Promise<GameSessionSnapshot>((resolve) => {
+      resolveFetch = resolve
+    }))
+
+    const { result } = renderHook(() => useGameSession(settings))
+
+    expect(result.current.isRestoreComplete).toBe(false)
+
+    await act(async () => {
+      resolveFetch?.(createSnapshot({ sessionId: 'saved-session', level: 3 }))
+    })
+
+    await waitFor(() => {
+      expect(result.current.isRestoreComplete).toBe(true)
+    })
+  })
+
+  it('restart preserves the current active level when no override is provided', async () => {
+    createSessionMock
+      .mockResolvedValueOnce(createSnapshot({ sessionId: 'session-1', level: 4 }))
+      .mockResolvedValueOnce(createSnapshot({ sessionId: 'session-2', level: 4 }))
+
+    const { result } = renderHook(() => useGameSession(settings))
+
+    await act(async () => {
+      await result.current.startGame(4)
+    })
+
+    await act(async () => {
+      await result.current.restart()
+    })
+
+    expect(createSessionMock).toHaveBeenNthCalledWith(1, {
+      questionLimit: 20,
+      figureScope: 'all',
+      level: 4,
+    })
+    expect(createSessionMock).toHaveBeenNthCalledWith(2, {
+      questionLimit: 20,
+      figureScope: 'all',
+      level: 4,
+    })
+    expect(result.current.state.level).toBe(4)
+  })
+
+  it('restart uses the override level when one is provided', async () => {
+    createSessionMock
+      .mockResolvedValueOnce(createSnapshot({ sessionId: 'session-1', level: 4 }))
+      .mockResolvedValueOnce(createSnapshot({ sessionId: 'session-2', level: 9 }))
+
+    const { result } = renderHook(() => useGameSession(settings))
+
+    await act(async () => {
+      await result.current.startGame(4)
+    })
+
+    await act(async () => {
+      await result.current.restart(9)
+    })
+
+    expect(createSessionMock).toHaveBeenNthCalledWith(2, {
+      questionLimit: 20,
+      figureScope: 'all',
+      level: 9,
+    })
+    expect(result.current.state.level).toBe(9)
+  })
 })

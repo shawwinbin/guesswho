@@ -34,6 +34,7 @@ const INITIAL_STATE: GameState = {
 export function useGameSession(settings: GameSettings) {
   const [state, setState] = useState<GameState>(INITIAL_STATE)
   const [isLoading, setIsLoading] = useState(false)
+  const [isRestoreComplete, setIsRestoreComplete] = useState(false)
 
   const resolveLevel = useCallback((snapshot?: GameSessionSnapshot) => {
     if (snapshot && Number.isInteger(snapshot.level) && snapshot.level >= 1) {
@@ -45,7 +46,11 @@ export function useGameSession(settings: GameSettings) {
 
   useEffect(() => {
     const savedSessionId = storage.get<string>(SESSION_KEY)
-    if (!savedSessionId) return
+    if (!savedSessionId) {
+      setIsRestoreComplete(true)
+      return
+    }
+
     const restore = async () => {
       setIsLoading(true)
       try {
@@ -55,8 +60,10 @@ export function useGameSession(settings: GameSettings) {
         storage.remove(SESSION_KEY)
       } finally {
         setIsLoading(false)
+        setIsRestoreComplete(true)
       }
     }
+
     restore()
   }, [])
 
@@ -146,5 +153,5 @@ export function useGameSession(settings: GameSettings) {
 
   const clearError = useCallback(() => setState(prev => ({ ...prev, errorMsg: null })), [])
 
-  return { state, isLoading, startGame, askQuestion, makeGuess, restart, clearError }
+  return { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, restart, clearError }
 }

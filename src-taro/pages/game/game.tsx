@@ -24,12 +24,13 @@ const DEFAULT_SETTINGS: GameSettings = {
 
 export default function GamePage() {
   const settings = storage.get<GameSettings>('game-settings') || DEFAULT_SETTINGS
-  const { state, isLoading, startGame, askQuestion, makeGuess, restart, clearError } = useGameSession(settings)
+  const { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, restart, clearError } = useGameSession(settings)
   const voice = useVoiceGame({ onTranscript: (text) => askQuestion(text) })
 
   useEffect(() => {
+    if (!isRestoreComplete) return
     if (state.phase === 'idle') startGame(readLevelProgress().currentLevel)
-  }, [])
+  }, [isRestoreComplete, startGame, state.phase])
 
   useEffect(() => {
     if (state.phase === 'ended' && state.revealedName) {
