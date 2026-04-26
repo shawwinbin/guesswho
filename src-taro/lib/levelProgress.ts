@@ -73,6 +73,10 @@ export function writeLevelProgress(progress: LevelProgress): void {
   storage.set(LEVEL_PROGRESS_KEY, progress)
 }
 
+export function clearLevelProgress(): void {
+  storage.remove(LEVEL_PROGRESS_KEY)
+}
+
 export function setCurrentLevel(level: number): LevelProgress {
   const current = readLevelProgress()
   const nextLevel = Math.min(normalizeLevel(level), current.highestUnlockedLevel)
