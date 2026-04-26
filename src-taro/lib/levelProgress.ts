@@ -30,8 +30,8 @@ function isLevelProgress(value: unknown): value is LevelProgress {
     isPositiveInteger(progress.currentLevel) &&
     isPositiveInteger(progress.highestUnlockedLevel) &&
     isNonNegativeInteger(progress.highestClearedLevel) &&
-    isNonNegativeInteger(progress.currentStreak) &&
-    (progress.lastResult === 'win' || progress.lastResult === 'loss' || progress.lastResult === null)
+    isNonNegativeInteger(progress.levelStreak) &&
+    (progress.lastResult === 'win' || progress.lastResult === 'lose' || progress.lastResult === null)
   )
 }
 
@@ -44,7 +44,7 @@ export function createDefaultLevelProgress(): LevelProgress {
     currentLevel: 1,
     highestUnlockedLevel: 1,
     highestClearedLevel: 0,
-    currentStreak: 0,
+    levelStreak: 0,
     lastResult: null,
   }
 }
@@ -58,13 +58,13 @@ export function readLevelProgress(): LevelProgress {
 
   const currentLevel = Math.min(progress.currentLevel, progress.highestUnlockedLevel)
   const highestUnlockedLevel = Math.max(progress.highestUnlockedLevel, currentLevel)
-  const highestClearedLevel = Math.min(progress.highestClearedLevel, highestUnlockedLevel - 1)
+  const highestClearedLevel = Math.min(progress.highestClearedLevel, currentLevel - 1, highestUnlockedLevel - 1)
 
   return {
     currentLevel,
     highestUnlockedLevel,
     highestClearedLevel: Math.max(0, highestClearedLevel),
-    currentStreak: progress.currentStreak,
+    levelStreak: progress.levelStreak,
     lastResult: progress.lastResult,
   }
 }
@@ -75,11 +75,10 @@ export function writeLevelProgress(progress: LevelProgress): void {
 
 export function setCurrentLevel(level: number): LevelProgress {
   const current = readLevelProgress()
-  const nextLevel = normalizeLevel(level)
+  const nextLevel = Math.min(normalizeLevel(level), current.highestUnlockedLevel)
   const nextProgress: LevelProgress = {
     ...current,
     currentLevel: nextLevel,
-    highestUnlockedLevel: Math.max(current.highestUnlockedLevel, nextLevel),
   }
 
   writeLevelProgress(nextProgress)
@@ -87,7 +86,7 @@ export function setCurrentLevel(level: number): LevelProgress {
   return nextProgress
 }
 
-export function applyLevelResult(progress: LevelProgress, result: 'win' | 'loss'): LevelProgress {
+export function applyLevelResult(progress: LevelProgress, result: 'win' | 'lose'): LevelProgress {
   if (result === 'win') {
     const clearedLevel = progress.currentLevel
     const nextLevel = clearedLevel + 1
@@ -96,15 +95,15 @@ export function applyLevelResult(progress: LevelProgress, result: 'win' | 'loss'
       currentLevel: nextLevel,
       highestUnlockedLevel: Math.max(progress.highestUnlockedLevel, nextLevel),
       highestClearedLevel: Math.max(progress.highestClearedLevel, clearedLevel),
-      currentStreak: progress.currentStreak + 1,
+      levelStreak: progress.levelStreak + 1,
       lastResult: 'win',
     }
   }
 
   return {
     ...progress,
-    currentStreak: 0,
-    lastResult: 'loss',
+    levelStreak: 0,
+    lastResult: 'lose',
   }
 }
 

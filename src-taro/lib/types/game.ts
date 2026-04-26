@@ -24,8 +24,8 @@ export interface LevelProgress {
   currentLevel: number
   highestUnlockedLevel: number
   highestClearedLevel: number
-  currentStreak: number
-  lastResult: 'win' | 'loss' | null
+  levelStreak: number
+  lastResult: 'win' | 'lose' | null
 }
 
 export interface GameSessionSnapshot {

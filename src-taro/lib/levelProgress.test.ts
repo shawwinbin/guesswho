@@ -36,7 +36,7 @@ describe('levelProgress', () => {
       currentLevel: 1,
       highestUnlockedLevel: 1,
       highestClearedLevel: 0,
-      currentStreak: 0,
+      levelStreak: 0,
       lastResult: null,
     })
   })
@@ -50,15 +50,41 @@ describe('levelProgress', () => {
     expect(readLevelProgress()).toEqual(createDefaultLevelProgress())
   })
 
-  it('writes and updates the current level through storage helpers', () => {
+  it('normalizes shape-valid but inconsistent stored progress', () => {
+    storageGetMock.mockReturnValueOnce({
+      currentLevel: 7,
+      highestUnlockedLevel: 5,
+      highestClearedLevel: 8,
+      levelStreak: 2,
+      lastResult: 'win',
+    })
+
+    expect(readLevelProgress()).toEqual<LevelProgress>({
+      currentLevel: 5,
+      highestUnlockedLevel: 5,
+      highestClearedLevel: 4,
+      levelStreak: 2,
+      lastResult: 'win',
+    })
+  })
+
+  it('writes and clamps the current level through storage helpers', () => {
+    storageGetMock.mockReturnValueOnce({
+      currentLevel: 2,
+      highestUnlockedLevel: 3,
+      highestClearedLevel: 2,
+      levelStreak: 1,
+      lastResult: 'win',
+    })
+
     const updated = setCurrentLevel(4)
 
     expect(updated).toEqual({
-      currentLevel: 4,
-      highestUnlockedLevel: 4,
-      highestClearedLevel: 0,
-      currentStreak: 0,
-      lastResult: null,
+      currentLevel: 3,
+      highestUnlockedLevel: 3,
+      highestClearedLevel: 1,
+      levelStreak: 1,
+      lastResult: 'win',
     })
     expect(storageSetMock).toHaveBeenCalledWith(LEVEL_PROGRESS_KEY, updated)
 
@@ -73,8 +99,8 @@ describe('levelProgress', () => {
         currentLevel: 4,
         highestUnlockedLevel: 4,
         highestClearedLevel: 3,
-        currentStreak: 1,
-        lastResult: 'loss',
+        levelStreak: 1,
+        lastResult: 'lose',
       },
       'win',
     )
@@ -83,7 +109,7 @@ describe('levelProgress', () => {
       currentLevel: 5,
       highestUnlockedLevel: 5,
       highestClearedLevel: 4,
-      currentStreak: 2,
+      levelStreak: 2,
       lastResult: 'win',
     })
   })
@@ -94,18 +120,18 @@ describe('levelProgress', () => {
         currentLevel: 5,
         highestUnlockedLevel: 7,
         highestClearedLevel: 4,
-        currentStreak: 3,
+        levelStreak: 3,
         lastResult: 'win',
       },
-      'loss',
+      'lose',
     )
 
     expect(next).toEqual<LevelProgress>({
       currentLevel: 5,
       highestUnlockedLevel: 7,
       highestClearedLevel: 4,
-      currentStreak: 0,
-      lastResult: 'loss',
+      levelStreak: 0,
+      lastResult: 'lose',
     })
   })
 
@@ -131,12 +157,27 @@ describe('levelProgress', () => {
         currentLevel: 8,
         highestUnlockedLevel: 12,
         highestClearedLevel: 7,
-        currentStreak: 2,
+        levelStreak: 2,
         lastResult: 'win',
       },
       2,
     )
 
     expect(levels).toEqual([6, 7, 8, 9, 10])
+  })
+
+  it('builds visible levels near the left edge without going below one', () => {
+    const levels = buildVisibleLevels(
+      {
+        currentLevel: 1,
+        highestUnlockedLevel: 4,
+        highestClearedLevel: 0,
+        levelStreak: 0,
+        lastResult: null,
+      },
+      2,
+    )
+
+    expect(levels).toEqual([1, 2, 3, 4])
   })
 })
