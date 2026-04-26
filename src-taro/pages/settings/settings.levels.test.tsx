@@ -80,21 +80,21 @@ describe('SettingsPage level reset flows', () => {
     })
   })
 
-  it('resets settings, login data, active round, and level progress through explicit key removals', () => {
+  it('resets settings, login data, and level progress without clearing the active round session', () => {
     render(<SettingsPage />)
 
     fireEvent.click(screen.getByText('重置数据（设置/登录/关卡）'))
 
     expect(dialogConfirmMock).toHaveBeenCalledWith({
       title: '清除数据',
-      content: '确定要清除设置、登录信息、当前对局和关卡进度吗？',
+      content: '确定要清除设置、登录信息和关卡进度吗？',
       onConfirm: expect.any(Function),
     })
     expect(storageRemoveMock).toHaveBeenCalledWith('game-settings')
     expect(storageRemoveMock).toHaveBeenCalledWith('wechat-openid')
     expect(storageRemoveMock).toHaveBeenCalledWith('wechat-userinfo')
-    expect(storageRemoveMock).toHaveBeenCalledWith('history-figure-guess-session')
     expect(storageRemoveMock).toHaveBeenCalledWith(LEVEL_PROGRESS_KEY)
+    expect(storageRemoveMock).not.toHaveBeenCalledWith('history-figure-guess-session')
     expect(storageSetMock).not.toHaveBeenCalled()
     expect(toastShowMock).toHaveBeenCalledWith('数据已清除')
   })

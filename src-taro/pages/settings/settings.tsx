@@ -85,12 +85,11 @@ export default function SettingsPage() {
   const handleClearData = () => {
     Dialog.confirm({
       title: '清除数据',
-      content: '确定要清除设置、登录信息、当前对局和关卡进度吗？',
+      content: '确定要清除设置、登录信息和关卡进度吗？',
       onConfirm: () => {
         storage.remove(SETTINGS_STORAGE_KEY)
         storage.remove(WECHAT_OPENID_STORAGE_KEY)
         storage.remove(WECHAT_USERINFO_STORAGE_KEY)
-        storage.remove(SESSION_STORAGE_KEY)
         clearLevelProgress()
         setSettings(DEFAULT_SETTINGS)
         setIsLoggedIn(false)
