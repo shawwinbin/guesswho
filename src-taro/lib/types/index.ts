@@ -6,6 +6,7 @@ export type {
   GameSettings,
   GuessRecord,
   GuessResponse,
+  LevelProgress,
   QuestionAnswer,
   QuestionResponse,
   YesNoAnswer,

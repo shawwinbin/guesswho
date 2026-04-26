@@ -20,8 +20,17 @@ export interface GuessRecord {
   isCorrect: boolean
 }
 
+export interface LevelProgress {
+  currentLevel: number
+  highestUnlockedLevel: number
+  highestClearedLevel: number
+  currentStreak: number
+  lastResult: 'win' | 'loss' | null
+}
+
 export interface GameSessionSnapshot {
   sessionId: string
+  level: number
   status: 'playing' | 'ended'
   questionCount: number
   questionLimit: number
@@ -32,6 +41,7 @@ export interface GameSessionSnapshot {
 }
 
 export interface CreateSessionRequest {
+  level: number
   questionLimit: number
   figureScope: FigureScope
 }
