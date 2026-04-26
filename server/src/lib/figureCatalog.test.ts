@@ -28,6 +28,13 @@ describe('figureCatalog', () => {
   it('maps low levels to easy figures', () => {
     expect(getDifficultyForLevel(1)).toBe(1)
     expect(getDifficultyForLevel(3)).toBe(1)
+    expect(getDifficultyForLevel(4)).toBe(2)
+    expect(getDifficultyForLevel(6)).toBe(2)
+    expect(getDifficultyForLevel(7)).toBe(3)
+    expect(getDifficultyForLevel(10)).toBe(3)
+    expect(getDifficultyForLevel(11)).toBe(4)
+    expect(getDifficultyForLevel(15)).toBe(4)
+    expect(getDifficultyForLevel(16)).toBe(5)
 
     const easyFigures = filterFiguresByScopeAndLevel('all', 2)
 
@@ -36,8 +43,6 @@ describe('figureCatalog', () => {
   })
 
   it('uses higher difficulty pools for higher levels', () => {
-    expect(getDifficultyForLevel(11)).toBe(4)
-
     const advancedPoets = filterFiguresByScopeAndLevel('poet', 11)
 
     expect(advancedPoets.length).toBeGreaterThan(0)
@@ -46,8 +51,6 @@ describe('figureCatalog', () => {
   })
 
   it('falls back to the nearest lower difficulty in the same scope when needed', () => {
-    expect(getDifficultyForLevel(16)).toBe(5)
-
     const fallbackEmperors = filterFiguresByScopeAndLevel('emperor', 16)
 
     expect(fallbackEmperors.length).toBeGreaterThan(0)
