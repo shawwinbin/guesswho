@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { View, Text } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { buildVisibleLevels, getLevelHint, getLevelTitle, readLevelProgress, setCurrentLevel } from '../../lib/levelProgress'
 import type { LevelProgress } from '../../lib/types'
 import './index.scss'
@@ -27,6 +27,11 @@ function buildRibbonLevels(progress: LevelProgress): number[] {
 
 export default function IndexPage() {
   const [progress, setProgress] = useState(() => readLevelProgress())
+  const syncProgress = useCallback(() => {
+    setProgress(readLevelProgress())
+  }, [])
+
+  useDidShow(syncProgress)
 
   const handleStart = () => Taro.navigateTo({ url: '/pages/game/game' })
   const handleSettings = () => Taro.navigateTo({ url: '/pages/settings/settings' })
@@ -174,7 +179,7 @@ export default function IndexPage() {
       <View className="index-stats">
         <View className="stat-card mg-card">
           <Text className="stat-card__label">连胜记录</Text>
-          <Text className="stat-card__value stat-card__value--hot">5</Text>
+          <Text className="stat-card__value stat-card__value--hot">{progress.levelStreak}</Text>
           <Text className="stat-card__suffix">次</Text>
         </View>
         <View className="stat-card mg-card">

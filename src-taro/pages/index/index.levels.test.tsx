@@ -1,21 +1,23 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LEVEL_PROGRESS_KEY } from '../../lib/levelProgress'
 import type { LevelProgress } from '../../lib/types'
 
-const { navigateToMock, storageGetMock, storageSetMock } = vi.hoisted(() => ({
+const { navigateToMock, storageGetMock, storageSetMock, useDidShowMock } = vi.hoisted(() => ({
   navigateToMock: vi.fn(),
   storageGetMock: vi.fn(),
   storageSetMock: vi.fn(),
+  useDidShowMock: vi.fn(),
 }))
 
 vi.mock('@tarojs/taro', () => ({
   default: {
     navigateTo: navigateToMock,
   },
+  useDidShow: useDidShowMock,
 }))
 
 vi.mock('@tarojs/components', () => ({
@@ -48,6 +50,7 @@ describe('IndexPage level progress', () => {
     navigateToMock.mockReset()
     storageGetMock.mockReset()
     storageSetMock.mockReset()
+    useDidShowMock.mockReset()
     storageGetMock.mockReturnValue(null)
   })
 
@@ -103,5 +106,71 @@ describe('IndexPage level progress', () => {
       levelStreak: 0,
       lastResult: 'win',
     }))
+  })
+
+  it('does not switch levels when a locked ribbon level is clicked', () => {
+    storageGetMock.mockImplementation((key: string) => {
+      if (key === LEVEL_PROGRESS_KEY) {
+        return createProgress({
+          currentLevel: 2,
+          highestUnlockedLevel: 2,
+          highestClearedLevel: 1,
+          levelStreak: 1,
+          lastResult: 'win',
+        })
+      }
+
+      return null
+    })
+
+    render(<IndexPage />)
+
+    fireEvent.click(screen.getByText('第4关'))
+
+    expect(screen.getByText('继续第2关')).toBeInTheDocument()
+    expect(storageSetMock).not.toHaveBeenCalled()
+  })
+
+  it('rehydrates latest persisted progress when the page shows again', () => {
+    let storedProgress = createProgress({
+      currentLevel: 3,
+      highestUnlockedLevel: 4,
+      highestClearedLevel: 2,
+      levelStreak: 2,
+      lastResult: 'win',
+    })
+
+    storageGetMock.mockImplementation((key: string) => {
+      if (key === LEVEL_PROGRESS_KEY) return storedProgress
+      return null
+    })
+
+    const { container } = render(<IndexPage />)
+    const streakCard = container.querySelector('.stat-card')
+
+    expect(screen.getByText('继续第3关')).toBeInTheDocument()
+    expect(streakCard?.textContent).toContain('连胜记录')
+    expect(streakCard?.textContent).toContain('2')
+    expect(streakCard?.textContent).toContain('次')
+
+    storedProgress = createProgress({
+      currentLevel: 1,
+      highestUnlockedLevel: 1,
+      highestClearedLevel: 0,
+      levelStreak: 0,
+      lastResult: null,
+    })
+
+    expect(useDidShowMock).toHaveBeenCalled()
+
+    const onShow = useDidShowMock.mock.calls.at(-1)?.[0] as (() => void) | undefined
+
+    act(() => {
+      onShow?.()
+    })
+
+    expect(screen.getByText('继续第1关')).toBeInTheDocument()
+    expect(screen.getAllByText('第1关').length).toBeGreaterThan(0)
+    expect(streakCard?.textContent).toContain('0')
   })
 })
