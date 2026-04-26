@@ -9,6 +9,7 @@ import { AnswerBadge } from '../../components/AnswerBadge'
 import { VoiceControls } from '../../components/VoiceControls'
 import { useVoiceGame } from '../../hooks/useVoiceGame'
 import { SUGGESTED_QUESTIONS } from '../../lib/gameContent'
+import { readLevelProgress } from '../../lib/levelProgress'
 import { storage } from '../../lib/storage'
 import { GameSettings } from '../../lib/types'
 import './game.scss'
@@ -27,7 +28,7 @@ export default function GamePage() {
   const voice = useVoiceGame({ onTranscript: (text) => askQuestion(text) })
 
   useEffect(() => {
-    if (state.phase === 'idle') startGame()
+    if (state.phase === 'idle') startGame(readLevelProgress().currentLevel)
   }, [])
 
   useEffect(() => {
