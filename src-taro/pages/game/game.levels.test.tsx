@@ -108,6 +108,15 @@ describe('GamePage level HUD', () => {
     makeGuessMock.mockReset()
     restartMock.mockReset()
     clearErrorMock.mockReset()
+    mockGameState.sessionId = 'session-1'
+    mockGameState.phase = 'playing'
+    mockGameState.level = 7
+    mockGameState.history = []
+    mockGameState.guesses = []
+    mockGameState.isWinner = false
+    mockGameState.errorMsg = null
+    mockGameState.revealedName = null
+    mockGameState.remainingQuestions = 20
     storageGetMock.mockImplementation((key: string) => {
       if (key === LEVEL_PROGRESS_KEY) {
         return {
@@ -129,5 +138,21 @@ describe('GamePage level HUD', () => {
     expect(await screen.findByText('LEVEL 7')).toBeInTheDocument()
     expect(screen.getByText('熟手')).toBeInTheDocument()
     expect(screen.getByText('胜利后解锁第8关')).toBeInTheDocument()
+  })
+
+  it('navigates to result with the played session level instead of the HUD fallback level', () => {
+    mockGameState.phase = 'ended'
+    mockGameState.level = null
+    mockGameState.revealedName = '李白'
+    mockGameState.history = [
+      { question: '他是诗人吗？', answer: '是' },
+      { question: '他生活在唐朝吗？', answer: '是' },
+    ]
+
+    render(<GamePage />)
+
+    expect(navigateToMock).toHaveBeenCalledWith({
+      url: '/pages/result/result?winner=false&name=李白&count=2&level=null',
+    })
   })
 })

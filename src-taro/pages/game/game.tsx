@@ -41,10 +41,10 @@ export default function GamePage() {
     if (state.phase === 'ended' && state.revealedName) {
       setPendingGuess(null)
       Taro.navigateTo({
-        url: `/pages/result/result?winner=${state.isWinner}&name=${state.revealedName}&count=${state.history.length}&level=${activeLevel}`
+        url: `/pages/result/result?winner=${state.isWinner}&name=${state.revealedName}&count=${state.history.length}&level=${state.level}`
       })
     }
-  }, [activeLevel, state.history.length, state.isWinner, state.phase, state.revealedName])
+  }, [state.history.length, state.isWinner, state.level, state.phase, state.revealedName])
 
   if (state.phase === 'loading' && !state.sessionId) {
     return (
