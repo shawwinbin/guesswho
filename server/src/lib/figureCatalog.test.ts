@@ -85,18 +85,21 @@ describe('figureCatalog', () => {
     expect(figure.difficulty).toBe(4)
   })
 
-  it('keeps omitted-level selection compatible for every public scope', () => {
+  it('keeps level-aware selection non-empty for every public scope at representative levels', () => {
     for (const scope of publicScopes) {
-      expect(() => selectRandomFigure(scope), `scope=${scope}`).not.toThrow()
+      for (const level of representativeLevels) {
+        expect(() => selectRandomFigure(scope, level), `scope=${scope} level=${level}`).not.toThrow()
+      }
     }
   })
 
-  it('uses the full scoped catalog when level is omitted', () => {
+  it('treats an omitted level as level 1 selection', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.99)
 
-    const femaleFigures = filterFiguresByScope('female')
-    const selectedFigure = selectRandomFigure('female')
+    const expectedPool = filterFiguresByScopeAndLevel('all', 1)
+    const selectedFigure = selectRandomFigure('all')
 
-    expect(selectedFigure).toEqual(femaleFigures[femaleFigures.length - 1])
+    expect(selectedFigure).toEqual(expectedPool[expectedPool.length - 1])
+    expect(selectedFigure.difficulty).toBe(1)
   })
 })
