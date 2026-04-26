@@ -96,13 +96,15 @@ describe('ResultPage level progression', () => {
   it('promotes the next level after a win', () => {
     renderWithParams(
       { winner: 'true', name: '李白', count: '6', level: '4' },
-      createProgress({
-        currentLevel: 4,
-        highestUnlockedLevel: 4,
-        highestClearedLevel: 3,
-        levelStreak: 1,
-        lastResult: 'lose',
-      }),
+      {
+        storedProgress: createProgress({
+          currentLevel: 4,
+          highestUnlockedLevel: 4,
+          highestClearedLevel: 3,
+          levelStreak: 1,
+          lastResult: 'lose',
+        }),
+      },
     )
 
     expect(screen.getByText('第4关通关')).toBeInTheDocument()
@@ -121,7 +123,7 @@ describe('ResultPage level progression', () => {
       currentLevel: 5,
       highestUnlockedLevel: 5,
       highestClearedLevel: 4,
-      levelStreak: 1,
+      levelStreak: 2,
       lastResult: 'win',
     }))
   })
@@ -129,13 +131,15 @@ describe('ResultPage level progression', () => {
   it('keeps the current unlocked level after a loss', () => {
     renderWithParams(
       { winner: 'false', name: '李白', count: '20', level: '4' },
-      createProgress({
-        currentLevel: 4,
-        highestUnlockedLevel: 4,
-        highestClearedLevel: 3,
-        levelStreak: 2,
-        lastResult: 'win',
-      }),
+      {
+        storedProgress: createProgress({
+          currentLevel: 4,
+          highestUnlockedLevel: 4,
+          highestClearedLevel: 3,
+          levelStreak: 2,
+          lastResult: 'win',
+        }),
+      },
     )
 
     expect(screen.getByText('已为你保留至第4关')).toBeInTheDocument()

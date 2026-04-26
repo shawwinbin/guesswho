@@ -13,8 +13,6 @@ import { storage } from '../../lib/storage'
 import { GameSettings, HistoricalFigure, LevelProgress } from '../../lib/types'
 import './result.scss'
 
-const RESULT_PROGRESS_APPLY_KEY = 'history-figure-guess-result-progress-apply'
-
 const DEFAULT_SETTINGS: GameSettings = {
   questionLimit: 20,
   figureScope: 'all',
@@ -76,10 +74,6 @@ function parseLevel(value: string | undefined, fallbackLevel: number): number {
   return Number.isInteger(parsed) && parsed >= 1 ? parsed : fallbackLevel
 }
 
-function buildResultKey(result: 'win' | 'lose', revealedName: string, questionCount: number, playedLevel: number): string {
-  return `${result}:${revealedName}:${questionCount}:${playedLevel}`
-}
-
 function buildResultProgress(storedProgress: LevelProgress, playedLevel: number, result: 'win' | 'lose'): LevelProgress {
   const highestUnlockedLevel = Math.max(storedProgress.highestUnlockedLevel, playedLevel)
   const baseProgress: LevelProgress = {
@@ -103,17 +97,41 @@ function buildResultProgress(storedProgress: LevelProgress, playedLevel: number,
   }
 }
 
-function resolveResultProgress(
-  storedProgress: LevelProgress,
-  playedLevel: number,
-  result: 'win' | 'lose',
-  resultKey: string,
-): LevelProgress {
-  if (storage.get<string>(RESULT_PROGRESS_APPLY_KEY) === resultKey) {
+function isSameProgress(left: LevelProgress, right: LevelProgress): boolean {
+  return (
+    left.currentLevel === right.currentLevel &&
+    left.highestUnlockedLevel === right.highestUnlockedLevel &&
+    left.highestClearedLevel === right.highestClearedLevel &&
+    left.levelStreak === right.levelStreak &&
+    left.lastResult === right.lastResult
+  )
+}
+
+function undoAppliedWinProgress(progress: LevelProgress, playedLevel: number): LevelProgress {
+  return {
+    ...progress,
+    currentLevel: playedLevel,
+    levelStreak: Math.max(progress.levelStreak - 1, 0),
+    lastResult: progress.lastResult === 'win' ? null : progress.lastResult,
+  }
+}
+
+function resolveResultProgress(storedProgress: LevelProgress, playedLevel: number, result: 'win' | 'lose'): LevelProgress {
+  const directCandidate = buildResultProgress(storedProgress, playedLevel, result)
+
+  if (isSameProgress(storedProgress, directCandidate)) {
     return storedProgress
   }
 
-  return buildResultProgress(storedProgress, playedLevel, result)
+  if (result === 'win') {
+    const duplicateCandidate = buildResultProgress(undoAppliedWinProgress(storedProgress, playedLevel), playedLevel, result)
+
+    if (isSameProgress(storedProgress, duplicateCandidate)) {
+      return storedProgress
+    }
+  }
+
+  return directCandidate
 }
 
 export default function ResultPage() {
@@ -130,8 +148,7 @@ export default function ResultPage() {
   const settings = useMemo(() => storage.get<GameSettings>('game-settings') || DEFAULT_SETTINGS, [])
   const storedProgress = readLevelProgress()
   const playedLevel = parseLevel(levelParam, storedProgress.currentLevel)
-  const resultKey = buildResultKey(resultType, revealedName, questionCount, playedLevel)
-  const progress = resolveResultProgress(storedProgress, playedLevel, resultType, resultKey)
+  const progress = resolveResultProgress(storedProgress, playedLevel, resultType)
   const revealedFigure = useMemo(() => findFigure(revealedName), [revealedName])
   const figureCaption = useMemo(() => buildFigureCaption(revealedFigure, revealedName), [revealedFigure, revealedName])
   const hintItems = useMemo(() => buildHintItems(revealedFigure), [revealedFigure])
@@ -153,15 +170,14 @@ export default function ResultPage() {
   ]
 
   useEffect(() => {
-    const alreadyApplied = storage.get<string>(RESULT_PROGRESS_APPLY_KEY) === resultKey
+    const latestStoredProgress = readLevelProgress()
 
-    if (alreadyApplied) {
+    if (isSameProgress(latestStoredProgress, progress)) {
       return
     }
 
     writeLevelProgress(progress)
-    storage.set(RESULT_PROGRESS_APPLY_KEY, resultKey)
-  }, [progress, resultKey])
+  }, [progress])
 
   useEffect(() => {
     setShowHints(false)
