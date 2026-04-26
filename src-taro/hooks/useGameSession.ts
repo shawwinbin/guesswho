@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { createSession, fetchSession, submitQuestion, submitGuess } from '../lib/gameApi'
+import { readLevelProgress } from '../lib/levelProgress'
 import { storage } from '../lib/storage'
 import { GameSessionSnapshot, GameSettings, QuestionAnswer, YesNoAnswer } from '../lib/types'
 
@@ -8,6 +9,7 @@ export type GamePhase = 'idle' | 'loading' | 'playing' | 'ended'
 export interface GameState {
   sessionId: string | null
   phase: GamePhase
+  level: number | null
   history: QuestionAnswer[]
   guesses: string[]
   isWinner: boolean
@@ -20,6 +22,7 @@ const SESSION_KEY = 'history-figure-guess-session'
 const INITIAL_STATE: GameState = {
   sessionId: null,
   phase: 'idle',
+  level: null,
   history: [],
   guesses: [],
   isWinner: false,
@@ -31,6 +34,14 @@ const INITIAL_STATE: GameState = {
 export function useGameSession(settings: GameSettings) {
   const [state, setState] = useState<GameState>(INITIAL_STATE)
   const [isLoading, setIsLoading] = useState(false)
+
+  const resolveLevel = useCallback((snapshot?: GameSessionSnapshot) => {
+    if (snapshot && Number.isInteger(snapshot.level) && snapshot.level >= 1) {
+      return snapshot.level
+    }
+
+    return readLevelProgress().currentLevel
+  }, [])
 
   useEffect(() => {
     const savedSessionId = storage.get<string>(SESSION_KEY)
@@ -49,10 +60,11 @@ export function useGameSession(settings: GameSettings) {
     restore()
   }, [])
 
-  const applySnapshot = (snapshot: GameSessionSnapshot) => {
+  const applySnapshot = useCallback((snapshot: GameSessionSnapshot) => {
     setState({
       sessionId: snapshot.sessionId,
       phase: snapshot.status === 'ended' ? 'ended' : 'playing',
+      level: resolveLevel(snapshot),
       history: snapshot.history,
       guesses: snapshot.guesses.map(g => g.guess),
       isWinner: snapshot.guesses[snapshot.guesses.length - 1]?.isCorrect ?? false,
@@ -61,15 +73,17 @@ export function useGameSession(settings: GameSettings) {
       remainingQuestions: snapshot.remainingQuestions
     })
     storage.set(SESSION_KEY, snapshot.sessionId)
-  }
+  }, [resolveLevel])
 
-  const startGame = useCallback(async () => {
+  const startGame = useCallback(async (level: number) => {
+    const nextLevel = Number.isInteger(level) && level >= 1 ? level : resolveLevel()
     setIsLoading(true)
     setState(prev => ({ ...prev, phase: 'loading', errorMsg: null }))
     try {
       const snapshot = await createSession({
         questionLimit: settings.questionLimit,
-        figureScope: settings.figureScope
+        figureScope: settings.figureScope,
+        level: nextLevel
       })
       applySnapshot(snapshot)
     } catch (err) {
@@ -79,7 +93,7 @@ export function useGameSession(settings: GameSettings) {
     } finally {
       setIsLoading(false)
     }
-  }, [settings])
+  }, [applySnapshot, resolveLevel, settings])
 
   const askQuestion = useCallback(async (question: string) => {
     if (!state.sessionId || state.phase !== 'playing') return
@@ -123,11 +137,12 @@ export function useGameSession(settings: GameSettings) {
     }
   }, [state.sessionId, state.phase])
 
-  const restart = useCallback(async () => {
+  const restart = useCallback(async (levelOverride?: number) => {
+    const nextLevel = levelOverride ?? state.level ?? resolveLevel()
     storage.remove(SESSION_KEY)
     setState(INITIAL_STATE)
-    await startGame()
-  }, [startGame])
+    await startGame(nextLevel)
+  }, [resolveLevel, startGame, state.level])
 
   const clearError = useCallback(() => setState(prev => ({ ...prev, errorMsg: null })), [])
 

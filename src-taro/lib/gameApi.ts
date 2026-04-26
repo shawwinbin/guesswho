@@ -27,10 +27,10 @@ async function taroRequest<T>(path: string, options: {
   return res.data as T
 }
 
-export function createSession(payload: CreateSessionRequest): Promise<GameSessionSnapshot> {
+export function createSession({ questionLimit, figureScope, level }: CreateSessionRequest): Promise<GameSessionSnapshot> {
   return taroRequest('/v1/game-sessions', {
     method: 'POST',
-    data: payload
+    data: { questionLimit, figureScope, level }
   })
 }
 
