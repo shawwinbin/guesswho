@@ -140,6 +140,29 @@ describe('GamePage level HUD', () => {
     expect(screen.getByText('胜利后解锁第8关')).toBeInTheDocument()
   })
 
+  it('shows broader unlocked progress instead of a fake next-unlock claim when replaying an older level', async () => {
+    mockGameState.level = 5
+    storageGetMock.mockImplementation((key: string) => {
+      if (key === LEVEL_PROGRESS_KEY) {
+        return {
+          currentLevel: 5,
+          highestUnlockedLevel: 8,
+          highestClearedLevel: 7,
+          levelStreak: 0,
+          lastResult: 'lose',
+        }
+      }
+
+      return null
+    })
+
+    render(<GamePage />)
+
+    expect(await screen.findByText('LEVEL 5')).toBeInTheDocument()
+    expect(screen.getByText('当前已解锁至第8关')).toBeInTheDocument()
+    expect(screen.queryByText('胜利后解锁第6关')).not.toBeInTheDocument()
+  })
+
   it('navigates to result with the played session level instead of the HUD fallback level', () => {
     mockGameState.phase = 'ended'
     mockGameState.level = null

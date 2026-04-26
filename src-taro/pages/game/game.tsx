@@ -26,11 +26,16 @@ export default function GamePage() {
   const { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, restart, clearError } = useGameSession(settings)
   const voice = useVoiceGame({ onTranscript: (text) => askQuestion(text) })
   const [pendingGuess, setPendingGuess] = useState<string | null>(null)
-  const activeLevel = state.level ?? readLevelProgress().currentLevel
+  const levelProgress = readLevelProgress()
+  const activeLevel = state.level ?? levelProgress.currentLevel
   const levelTitle = getLevelTitle(activeLevel)
   const levelHint = getLevelHint(activeLevel)
   const currentGoal = `通关条件：在 ${settings.questionLimit} 次提问内猜中本关人物`
-  const nextUnlockCopy = `胜利后解锁第${activeLevel + 1}关`
+  const isReplayingUnlockedLevel = levelProgress.highestUnlockedLevel > activeLevel
+  const progressLabel = isReplayingUnlockedLevel ? 'PROGRESS' : 'NEXT'
+  const progressCopy = isReplayingUnlockedLevel
+    ? `当前已解锁至第${levelProgress.highestUnlockedLevel}关`
+    : `胜利后解锁第${activeLevel + 1}关`
 
   useEffect(() => {
     if (!isRestoreComplete) return
@@ -92,8 +97,8 @@ export default function GamePage() {
             <Text className="level-hud__title">{levelTitle}</Text>
           </View>
           <View className="level-hud__unlock">
-            <Text className="level-hud__unlock-label">NEXT</Text>
-            <Text className="level-hud__unlock-text">{nextUnlockCopy}</Text>
+            <Text className="level-hud__unlock-label">{progressLabel}</Text>
+            <Text className="level-hud__unlock-text">{progressCopy}</Text>
           </View>
         </View>
         <View className="level-hud__details">
