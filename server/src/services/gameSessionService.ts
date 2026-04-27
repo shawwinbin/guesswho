@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { selectRandomFigure } from '../lib/figureCatalog.js'
+import { figures, selectRandomFigure } from '../lib/figureCatalog.js'
 import { badRequest, notFound } from '../lib/errors.js'
 import { answerQuestionByRules, findHistoricalFigure, judgeGuessLocally } from '../lib/localAnswerEngine.js'
 import type { SecretFigure, YesNoAnswer } from '../lib/normalization.js'
@@ -399,6 +399,13 @@ function isHintDimensionAlreadyAsked(question: string, dimension: string): boole
 
 function classifyQuestionIntentLocally(question: string): QuestionIntent | null {
   const normalizedQuestion = question.trim()
+  const knownCandidate = extractKnownGuessCandidate(normalizedQuestion)
+  if (knownCandidate) {
+    return {
+      type: 'guess',
+      guess: knownCandidate,
+    }
+  }
 
   for (const pattern of LOCAL_GUESS_PATTERNS) {
     const match = normalizedQuestion.match(pattern)
@@ -409,15 +416,45 @@ function classifyQuestionIntentLocally(question: string): QuestionIntent | null 
       return { type: 'question' }
     }
 
+    if (!isKnownFigureCandidate(candidate)) {
+      continue
+    }
+
     return {
       type: 'guess',
-      guess: candidate,
+      guess: resolveKnownFigureCandidate(candidate) ?? candidate,
     }
   }
 
   const compactQuestion = normalizeCandidate(normalizedQuestion)
   if (Array.from(NON_GUESS_TERMS).some(term => compactQuestion.includes(term))) {
     return { type: 'question' }
+  }
+
+  return null
+}
+
+function extractKnownGuessCandidate(question: string): string | null {
+  const compactQuestion = normalizeCandidate(question)
+  const patterns = [
+    /^(?:他|她|ta)是不是(.+?)$/i,
+    /^(?:他|她|ta)是(.+?)$/i,
+    /^是(?:他|她|ta)(.+?)$/i,
+    /^是不是(.+?)$/i,
+    /^(?:答案|最终答案|谜底)是不是(.+?)$/i,
+    /^(?:答案|最终答案|谜底)是(.+?)$/i,
+    /^不就是(.+?)$/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = compactQuestion.match(pattern)
+    if (!match?.[1]) continue
+
+    const candidate = normalizeCandidate(match?.[1] ?? '')
+    if (isNonGuessCandidate(candidate)) return null
+
+    const resolvedCandidate = resolveKnownFigureCandidate(candidate)
+    if (resolvedCandidate) return resolvedCandidate
   }
 
   return null
@@ -439,6 +476,51 @@ function isNonGuessCandidate(candidate: string): boolean {
     candidate.endsWith('人') ||
     candidate.endsWith('人物')
   )
+}
+
+function isKnownFigureCandidate(candidate: string): boolean {
+  return resolveKnownFigureCandidate(candidate) !== null
+}
+
+function resolveKnownFigureCandidate(candidate: string): string | null {
+  const normalizedCandidate = normalizeCandidate(candidate).toLowerCase()
+  if (!normalizedCandidate) return null
+
+  const knownNames = figures.flatMap(figure => [figure.name, ...figure.aliases]).filter(Boolean)
+  const exact = knownNames.find(name => normalizeCandidate(name).toLowerCase() === normalizedCandidate)
+  if (exact) return exact
+
+  const fuzzy = knownNames.find(name => isLikelyFigureNameTypo(normalizedCandidate, normalizeCandidate(name).toLowerCase()))
+  return fuzzy ?? null
+}
+
+function isLikelyFigureNameTypo(candidate: string, knownName: string): boolean {
+  if (candidate.length < 3 || knownName.length < 3) return false
+  if (Math.abs(candidate.length - knownName.length) > 1) return false
+
+  return levenshteinDistance(candidate, knownName) <= 1
+}
+
+function levenshteinDistance(left: string, right: string): number {
+  const rows = [...left]
+  const columns = [...right]
+  const distances = Array.from({ length: rows.length + 1 }, () => Array<number>(columns.length + 1).fill(0))
+
+  for (let row = 0; row <= rows.length; row += 1) distances[row][0] = row
+  for (let column = 0; column <= columns.length; column += 1) distances[0][column] = column
+
+  for (let row = 1; row <= rows.length; row += 1) {
+    for (let column = 1; column <= columns.length; column += 1) {
+      const substitutionCost = rows[row - 1] === columns[column - 1] ? 0 : 1
+      distances[row][column] = Math.min(
+        distances[row - 1][column] + 1,
+        distances[row][column - 1] + 1,
+        distances[row - 1][column - 1] + substitutionCost,
+      )
+    }
+  }
+
+  return distances[rows.length][columns.length]
 }
 
 function sanitizeQuestionIntent(intent: QuestionIntent): QuestionIntent {

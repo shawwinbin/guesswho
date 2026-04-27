@@ -228,21 +228,40 @@ describe('gameSessionService', () => {
     })
   })
 
-  it('uses the host model to classify ambiguous final-answer intent', async () => {
+  it('classifies known-name final-answer intent locally', async () => {
     const created = await service.createSession({
       level: 4,
       questionLimit: 3,
       figureScope: 'all',
     })
 
-    const intent = await service.classifyQuestionIntent(created.sessionId, '是不是李白？')
+    await expect(service.classifyQuestionIntent(created.sessionId, '是不是李白？')).resolves.toEqual({
+      type: 'guess',
+      guess: '李白',
+    })
+    await expect(service.classifyQuestionIntent(created.sessionId, '他是不是关汉卿？')).resolves.toEqual({
+      type: 'guess',
+      guess: '关汉卿',
+    })
+
+    expect(vi.mocked(hostService.classifyQuestionIntent)).not.toHaveBeenCalled()
+  })
+
+  it('uses the host model to classify unknown final-answer intent', async () => {
+    const created = await service.createSession({
+      level: 4,
+      questionLimit: 3,
+      figureScope: 'all',
+    })
+
+    const intent = await service.classifyQuestionIntent(created.sessionId, '是不是张三？')
 
     expect(intent).toEqual({
       type: 'guess',
       guess: '李白',
     })
     expect(vi.mocked(hostService.classifyQuestionIntent)).toHaveBeenCalledWith({
-      question: '是不是李白？',
+      question: '是不是张三？',
     })
   })
 

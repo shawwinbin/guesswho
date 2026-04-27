@@ -37,7 +37,10 @@ describe('localAnswerEngine', () => {
     }
 
     expect(answerQuestionLocally(guanHanqing, '他是关汉卿吗')).toBe('是')
+    expect(answerQuestionLocally(guanHanqing, '他是不是关汉卿')).toBe('是')
+    expect(answerQuestionLocally(guanHanqing, '答案是不是关汉卿')).toBe('是')
     expect(answerQuestionLocally(guanHanqing, '不就是关汉卿吗')).toBe('是')
+    expect(answerQuestionLocally(guanHanqing, '他是关汉清吗')).toBe('是')
     expect(answerQuestionLocally(guanHanqing, '他是李白吗')).toBe('不是')
   })
 

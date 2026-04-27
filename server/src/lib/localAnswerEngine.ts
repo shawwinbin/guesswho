@@ -90,31 +90,82 @@ function normalizeQuestion(question: string): string {
 
 function checkIdentityConfirmation(q: string, secret: SecretFigure): YesNoAnswer | null {
   const candidate = extractIdentityCandidate(q)
-  if (!candidate || !isKnownFigureName(candidate)) return null
+  const resolvedCandidate = candidate ? resolveKnownFigureName(candidate) : null
+  if (!resolvedCandidate) return null
 
-  return judgeGuessLocally(secret, candidate) ? '是' : '不是'
+  return judgeGuessLocally(secret, resolvedCandidate) ? '是' : '不是'
 }
 
 function extractIdentityCandidate(q: string): string | null {
   const patterns = [
+    /^(?:他|她|ta)是不是(.+?)[吗嘛么]?$/i,
     /^(?:他|她|ta)是(.+?)[吗嘛么]?$/i,
     /^是(?:他|她|ta)(.+?)[吗嘛么]?$/i,
     /^是不是(.+?)[吗嘛么]?$/i,
+    /^(?:答案|最终答案|谜底)是不是(.+?)[吗嘛么]?$/i,
+    /^(?:答案|最终答案|谜底)是(.+?)[吗嘛么]?$/i,
     /^不就是(.+?)[吗嘛么]?$/i,
   ]
 
   for (const pattern of patterns) {
     const match = q.match(pattern)
-    const candidate = match?.[1]?.trim()
-    if (candidate) return candidate
+    const candidate = cleanIdentityCandidate(match?.[1] ?? '')
+    if (candidate && !looksLikeRelationshipQuestion(candidate)) return candidate
   }
 
   return null
 }
 
-function isKnownFigureName(candidate: string): boolean {
+function cleanIdentityCandidate(candidate: string): string {
+  return candidate
+    .replace(/^(?:这个人|这位人物|这位|那位|那个人)/, '')
+    .replace(/(?:吧|呢)$/g, '')
+    .trim()
+}
+
+function looksLikeRelationshipQuestion(candidate: string): boolean {
+  return ['的朋友', '的老师', '的学生', '的弟子', '的父亲', '的母亲', '的儿子', '的女儿', '的妻子', '的丈夫'].some(token => candidate.includes(token))
+}
+
+function resolveKnownFigureName(candidate: string): string | null {
   const normalizedCandidate = normalizeText(candidate)
-  return figures.some(figure => [figure.name, ...figure.aliases].some(name => normalizeText(name) === normalizedCandidate))
+  if (!normalizedCandidate) return null
+
+  const knownNames = figures.flatMap(figure => [figure.name, ...figure.aliases]).filter(Boolean)
+  const exact = knownNames.find(name => normalizeText(name) === normalizedCandidate)
+  if (exact) return exact
+
+  const fuzzy = knownNames.find(name => isLikelyNameTypo(normalizedCandidate, normalizeText(name)))
+  return fuzzy ?? null
+}
+
+function isLikelyNameTypo(candidate: string, knownName: string): boolean {
+  if (candidate.length < 3 || knownName.length < 3) return false
+  if (Math.abs(candidate.length - knownName.length) > 1) return false
+
+  return levenshteinDistance(candidate, knownName) <= 1
+}
+
+function levenshteinDistance(left: string, right: string): number {
+  const rows = [...left]
+  const columns = [...right]
+  const distances = Array.from({ length: rows.length + 1 }, () => Array<number>(columns.length + 1).fill(0))
+
+  for (let row = 0; row <= rows.length; row += 1) distances[row][0] = row
+  for (let column = 0; column <= columns.length; column += 1) distances[0][column] = column
+
+  for (let row = 1; row <= rows.length; row += 1) {
+    for (let column = 1; column <= columns.length; column += 1) {
+      const substitutionCost = rows[row - 1] === columns[column - 1] ? 0 : 1
+      distances[row][column] = Math.min(
+        distances[row - 1][column] + 1,
+        distances[row][column - 1] + 1,
+        distances[row - 1][column - 1] + substitutionCost,
+      )
+    }
+  }
+
+  return distances[rows.length][columns.length]
 }
 
 function checkEraMatch(q: string, era: string): YesNoAnswer | null {
