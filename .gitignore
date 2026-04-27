@@ -26,3 +26,17 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Deployment and local operation scripts
+deploy-*.exp
+deploy-*.sh
+check-service.exp
+diagnose.exp
+exec-migrate.exp
+migrate.sh
+run-migration.exp
+test-api.exp
+test-final.exp
+deploy-package.tar.gz
+tmp/deploy-*.exp
+tmp/remote-hotfix-*.exp
