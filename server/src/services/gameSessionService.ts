@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { selectRandomFigure } from '../lib/figureCatalog.js'
 import { badRequest, notFound } from '../lib/errors.js'
-import { answerQuestionLocally, judgeGuessLocally } from '../lib/localAnswerEngine.js'
+import { answerQuestionByRules, judgeGuessLocally } from '../lib/localAnswerEngine.js'
 import type { SecretFigure, YesNoAnswer } from '../lib/normalization.js'
 import type {
   GameEventRepository,
@@ -106,7 +106,7 @@ export class GameSessionService {
 
     const record = await this.requirePlayableSession(sessionId)
     const figure = this.getSecretFigure(record)
-    const answer = answerQuestionLocally(figure, trimmedQuestion)
+    const answer = await this.answerQuestion(figure, trimmedQuestion)
 
     const nextCount = record.questionCount + 1
     const limitReached = record.questionLimit > 0 && nextCount >= record.questionLimit
@@ -199,6 +199,19 @@ export class GameSessionService {
       name: record.secretFigureName,
       aliases: record.secretFigureAliases,
       era: record.secretFigureEra,
+    }
+  }
+
+  private async answerQuestion(figure: SecretFigure, question: string): Promise<YesNoAnswer> {
+    const localAnswer = answerQuestionByRules(figure, question)
+    if (localAnswer) {
+      return localAnswer
+    }
+
+    try {
+      return await this.deps.hostService.answerQuestion({ question, figure })
+    } catch {
+      return '不是'
     }
   }
 

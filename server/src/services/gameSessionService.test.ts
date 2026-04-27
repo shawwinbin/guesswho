@@ -204,6 +204,26 @@ describe('gameSessionService', () => {
     expect(snapshot.level).toBe(4)
   })
 
+  it('falls back to the host model when local rules cannot answer the question', async () => {
+    vi.mocked(hostService.answerQuestion).mockResolvedValueOnce('是')
+    const created = await service.createSession({
+      level: 4,
+      questionLimit: 3,
+      figureScope: 'all',
+    })
+
+    const response = await service.submitQuestion(created.sessionId, '他喜欢吃辣吗？')
+
+    expect(response.answer).toBe('是')
+    expect(vi.mocked(hostService.answerQuestion)).toHaveBeenCalledWith({
+      question: '他喜欢吃辣吗？',
+      figure: expect.objectContaining({
+        name: '秦始皇',
+        era: '秦朝',
+      }),
+    })
+  })
+
   it('records guesses and marks the winner state on a correct guess', async () => {
     const created = await service.createSession({
       level: 3,

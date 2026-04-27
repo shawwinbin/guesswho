@@ -12,9 +12,13 @@ export function findHistoricalFigure(secret: SecretFigure): HistoricalFigure | n
 }
 
 export function answerQuestionLocally(secret: SecretFigure, question: string): YesNoAnswer {
+  return answerQuestionByRules(secret, question) ?? '不是'
+}
+
+export function answerQuestionByRules(secret: SecretFigure, question: string): YesNoAnswer | null {
   const figure = findHistoricalFigure(secret)
   if (!figure) {
-    return matchesFigureName(question, secret) ? '是' : '不是'
+    return matchesFigureName(question, secret) ? '是' : null
   }
 
   const q = normalizeQuestion(question)
@@ -44,7 +48,7 @@ export function answerQuestionLocally(secret: SecretFigure, question: string): Y
   const attrMatch = checkBooleanAttributes(q, figure)
   if (attrMatch !== null) return attrMatch
 
-  return containsFigureName(q, figure) ? '是' : '不是'
+  return containsFigureName(q, figure) ? '是' : null
 }
 
 export function judgeGuessLocally(secret: SecretFigure, guess: string): boolean {
