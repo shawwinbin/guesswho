@@ -14,11 +14,6 @@ import './game.scss'
 export default function GamePage() {
   const settings = normalizeGameSettings(storage.get<GameSettings>('game-settings'))
   const { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, classifyQuestionIntent, requestAiHint, restart, clearError } = useGameSession(settings)
-  const voice = useVoiceGame({
-    onError: message => {
-      Taro.showToast?.({ title: message, icon: 'none' })
-    },
-  })
   const hasAttemptedInitialStartRef = useRef(false)
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
   const levelProgress = readLevelProgress()
@@ -28,6 +23,29 @@ export default function GamePage() {
   const progressCopy = isReplayingUnlockedLevel
     ? `当前已解锁至第${levelProgress.highestUnlockedLevel}关`
     : `胜利后解锁第${activeLevel + 1}关`
+
+  const handleQuestionSubmit = async (question: string) => {
+    if (pendingQuestion) return
+
+    setPendingQuestion(question)
+    try {
+      const intent = await classifyQuestionIntent(question)
+      const response = await askQuestion(question)
+
+      if (intent.type === 'guess' && response?.answer === '是' && response.status !== 'ended') {
+        await makeGuess(intent.guess)
+      }
+    } finally {
+      setPendingQuestion(null)
+    }
+  }
+
+  const voice = useVoiceGame({
+    onTranscript: handleQuestionSubmit,
+    onError: message => {
+      Taro.showToast?.({ title: message, icon: 'none' })
+    },
+  })
 
   useEffect(() => {
     if (!isRestoreComplete) return
@@ -60,22 +78,6 @@ export default function GamePage() {
   }
 
   const historyBottomId = pendingQuestion ? 'history-pending-bottom' : 'history-bottom'
-
-  const handleQuestionSubmit = async (question: string) => {
-    if (pendingQuestion) return
-
-    setPendingQuestion(question)
-    try {
-      const intent = await classifyQuestionIntent(question)
-      const response = await askQuestion(question)
-
-      if (intent.type === 'guess' && response?.answer === '是' && response.status !== 'ended') {
-        await makeGuess(intent.guess)
-      }
-    } finally {
-      setPendingQuestion(null)
-    }
-  }
 
   const isQuestionInputDisabled = isLoading || pendingQuestion !== null || (state.remainingQuestions !== null && state.remainingQuestions <= 0)
   const isAiHintDisabled = state.remainingHints <= 0 || isLoading

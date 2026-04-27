@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import Taro from '@tarojs/taro'
-import { platform } from '../utils/platform'
+import { voiceService } from '../lib/voiceAdapter'
 
 export type VoiceState = 'idle' | 'recording' | 'processing'
 
@@ -12,33 +11,41 @@ interface UseVoiceGameOptions {
 export function useVoiceGame(options: UseVoiceGameOptions = {}) {
   const [state, setState] = useState<VoiceState>('idle')
   const [transcript, setTranscript] = useState('')
-  const recorderRef = useRef<ReturnType<typeof Taro.getRecorderManager> | null>(null)
+  const recorderRef = useRef<unknown>(null)
 
   const startRecording = useCallback(() => {
-    if (!platform.isWeapp) {
-      options.onError?.('H5 语音需要浏览器支持')
+    if (!voiceService.capabilities.canInput) {
+      options.onError?.('当前环境不支持语音输入')
       return
     }
+
     setState('recording')
     setTranscript('')
-    const recorder = Taro.getRecorderManager()
-    recorderRef.current = recorder
-    recorder.onStart(() => setState('recording'))
-    recorder.onStop((res) => {
-      setState('processing')
-      // TODO: upload to ASR service
-      console.log('Recording stopped:', res)
-    })
-    recorder.onError((err) => {
-      setState('idle')
-      options.onError?.(err.errMsg || '录音失败')
-    })
-    recorder.start({ format: 'mp3', duration: 60000 })
+
+    recorderRef.current = voiceService.input.start(
+      text => {
+        const normalizedText = text.trim()
+        setTranscript(normalizedText)
+        setState('idle')
+
+        if (normalizedText) {
+          options.onTranscript?.(normalizedText)
+        } else {
+          options.onError?.('没有识别到语音内容')
+        }
+      },
+      error => {
+        setState('idle')
+        options.onError?.(error || '语音识别失败')
+      }
+    )
   }, [options])
 
   const stopRecording = useCallback(() => {
     if (recorderRef.current) {
-      recorderRef.current.stop()
+      voiceService.input.stop(recorderRef.current)
+      recorderRef.current = null
+      setState('idle')
     }
   }, [])
 

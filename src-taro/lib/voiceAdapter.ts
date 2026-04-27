@@ -31,10 +31,19 @@ class WebSpeechRecognition {
       this.isListening = false
     }
     this.recognition.onerror = (event: any) => {
-      onError(event.error)
+      onError(formatSpeechRecognitionError(event.error))
       this.isListening = false
     }
-    this.recognition.start()
+    this.recognition.onend = () => {
+      this.isListening = false
+    }
+
+    try {
+      this.recognition.start()
+    } catch (err) {
+      this.isListening = false
+      onError(err instanceof Error ? err.message : '语音识别启动失败')
+    }
   }
 
   stop() {
@@ -43,6 +52,19 @@ class WebSpeechRecognition {
       this.isListening = false
     }
   }
+}
+
+function formatSpeechRecognitionError(error: string) {
+  const errorMessages: Record<string, string> = {
+    'not-allowed': '浏览器未授予麦克风权限，或当前页面不是 HTTPS/localhost',
+    'service-not-allowed': '浏览器语音识别服务不可用，请尝试 Chrome/Edge 或 HTTPS 访问',
+    'no-speech': '没有识别到语音内容',
+    'audio-capture': '没有检测到可用麦克风',
+    network: '语音识别网络服务不可用',
+    aborted: '语音识别已取消',
+  }
+
+  return errorMessages[error] ?? error ?? '语音识别失败'
 }
 
 class WeappVoiceService {
