@@ -1,0 +1,24 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password "35332280"
+set host "192.168.31.19"
+set user "shaw"
+
+spawn ssh -t ${user}@${host}
+
+expect {
+  "password:" {
+    send "$password\r"
+    exp_continue
+  }
+  "$ " {}
+}
+
+send "docker exec history-figure-guess-frontend sh -lc 'grep -q \"rel=\\\"icon\\\" href=\\\"data:,\\\"\" /usr/share/nginx/html/index.html || sed -i \"s#<title>历史人物猜谜</title>#<link rel=\\\"icon\\\" href=\\\"data:,\\\">\\\\n  <title>历史人物猜谜</title>#\" /usr/share/nginx/html/index.html'\r"
+expect "$ "
+send "docker exec history-figure-guess-frontend grep -n 'rel=\"icon\" href=\"data:,' /usr/share/nginx/html/index.html\r"
+expect "$ "
+send "exit\r"
+
+expect eof

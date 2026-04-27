@@ -1,0 +1,55 @@
+#!/usr/bin/expect -f
+
+set timeout -1
+set password "35332280"
+set host "192.168.31.19"
+set user "shaw"
+set local_dir "/Users/shaw/history-figure-guess"
+set remote_dir "/home/shaw/history-figure-guess"
+
+spawn rsync -az \
+  "$local_dir/src-taro" \
+  "$local_dir/config" \
+  "$local_dir/package.json" \
+  "$local_dir/package-lock.json" \
+  "$local_dir/Dockerfile" \
+  "$local_dir/docker-compose.yml" \
+  "$local_dir/docker" \
+  "${user}@${host}:${remote_dir}/"
+
+expect {
+  "password:" {
+    send "$password\r"
+    exp_continue
+  }
+  eof
+}
+
+spawn ssh -t ${user}@${host}
+
+expect {
+  "password:" {
+    send "$password\r"
+    exp_continue
+  }
+  "$ " {}
+}
+
+send "cd ${remote_dir}\r"
+expect "$ "
+send "docker compose up -d --build frontend\r"
+
+expect {
+  -re "Building|Built|Started|Recreated|Running|Container|Network|done" {
+    exp_continue
+  }
+  "$ " {}
+}
+
+send "docker compose ps frontend\r"
+expect "$ "
+send "curl -I http://127.0.0.1:18080/\r"
+expect "$ "
+send "exit\r"
+
+expect eof

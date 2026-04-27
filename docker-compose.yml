@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: history-figure-guess-postgres
+    environment:
+      POSTGRES_DB: history_figure_guess
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - history-figure-guess-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d history_figure_guess"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: ./server
+    container_name: history-figure-guess-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/history_figure_guess}
+      PGSSLMODE: disable
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-replace-me}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+    command: >
+      sh -c "sleep 3 &&
+      node -e 'const { Pool } = require(\"pg\"); const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: false }); p.query(\"SELECT 1 as test\").then(r => { console.log(\"DB test OK:\", r.rows); return p.end(); }).catch(e => { console.error(\"DB test FAILED:\", e.message); process.exit(1); })' &&
+      npm run start"
+
+  frontend:
+    build:
+      context: .
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    container_name: history-figure-guess-frontend
+    depends_on:
+      server:
+        condition: service_started
+    ports:
+      - "18080:80"
+
+volumes:
+  history-figure-guess-postgres:

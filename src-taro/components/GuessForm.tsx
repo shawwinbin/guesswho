@@ -1,5 +1,4 @@
-import { View } from '@tarojs/components'
-import { Input, Button } from '@nutui/nutui-react-taro'
+import { View, Text, Input } from '@tarojs/components'
 import { useState } from 'react'
 import './components.scss'
 
@@ -11,14 +10,29 @@ interface GuessFormProps {
 
 export function GuessForm({ onSubmit, disabled = false, loading = false }: GuessFormProps) {
   const [value, setValue] = useState('')
+
   const handleSubmit = () => {
-    if (value.trim()) { onSubmit(value.trim()); setValue('') }
+    if (disabled || loading || !value.trim()) return
+    onSubmit(value.trim())
+    setValue('')
   }
+
   return (
     <View className="guess-form">
+      <Text className="guess-form__label">直接猜答案</Text>
+      <Text className="guess-form__sub">Final Guess</Text>
       <View className="input-row">
-        <Input className="guess-input" value={value} placeholder="输入你猜测的人物名字..." disabled={disabled || loading} onChange={(val) => setValue(val)} />
-        <Button type="success" size="small" disabled={disabled || loading || !value.trim()} onClick={handleSubmit}>{loading ? '...' : '最终猜测'}</Button>
+        <Input
+          className="guess-input"
+          value={value}
+          placeholder="输入你猜测的人物名字"
+          disabled={disabled || loading}
+          onInput={(e) => setValue(e.detail.value)}
+          onConfirm={handleSubmit}
+        />
+        <View className={`guess-submit ${disabled || loading || !value.trim() ? 'is-disabled' : ''}`} onClick={handleSubmit}>
+          <Text className="guess-submit__text">{loading ? '...' : 'Final Guess'}</Text>
+        </View>
       </View>
     </View>
   )

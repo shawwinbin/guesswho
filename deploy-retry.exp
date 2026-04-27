@@ -1,0 +1,63 @@
+#!/usr/bin/expect -f
+
+set timeout 600
+set password "35332280"
+set host "192.168.31.19"
+set user "shaw"
+
+# 传输新的压缩包
+spawn scp /Users/shaw/history-figure-guess/deploy-package.tar.gz ${user}@${host}:/tmp/
+
+expect {
+    "password:" {
+        send "${password}\r"
+        exp_continue
+    }
+    eof {}
+}
+
+puts "压缩包传输完成"
+
+# 解压并部署
+spawn ssh -t ${user}@${host}
+
+expect {
+    "password:" {
+        send "${password}\r"
+        exp_continue
+    }
+    "$ " {}
+}
+
+send "rm -rf ~/history-figure-guess/* && tar -xzf /tmp/deploy-package.tar.gz -C ~/history-figure-guess/\r"
+
+expect "$ "
+send "cd ~/history-figure-guess\r"
+
+expect "$ "
+send "cat > .env << 'EOF'\nCORS_ORIGIN=http://192.168.31.19:18080\nVITE_API_BASE_URL=/v1\nDATABASE_URL=postgres://postgres:postgres@postgres:5432/history_figure_guess\nLLM_BASE_URL=https://api.openai.com/v1\nLLM_API_KEY=replace-me\nLLM_MODEL=gpt-4o-mini\nEOF\r"
+
+expect "$ "
+send "docker compose down 2>/dev/null\r"
+
+expect "$ "
+send "docker compose up -d --build 2>&1\r"
+
+expect {
+    -timeout 300
+    -re "Building|Creating|Pull|Started|Container|Network|Healthy|Error|error|done|complete|FINISHED" {
+        exp_continue
+    }
+    "$ " {}
+}
+
+send "docker compose ps\r"
+
+expect "$ "
+send "docker compose logs --tail=30\r"
+
+expect "$ "
+send "exit\r"
+
+expect eof
+puts "\n部署完成"

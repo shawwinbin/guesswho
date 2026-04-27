@@ -1,5 +1,4 @@
-import { View } from '@tarojs/components'
-import { Input, Button } from '@nutui/nutui-react-taro'
+import { View, Text, Input } from '@tarojs/components'
 import { useState } from 'react'
 import './components.scss'
 
@@ -13,23 +12,40 @@ interface QuestionFormProps {
 
 export function QuestionForm({ onSubmit, disabled = false, loading = false, suggestions = [], onSuggestionClick }: QuestionFormProps) {
   const [value, setValue] = useState('')
+
   const handleSubmit = () => {
-    if (value.trim()) { onSubmit(value.trim()); setValue('') }
+    if (disabled || loading || !value.trim()) return
+    onSubmit(value.trim())
+    setValue('')
   }
+
   return (
     <View className="question-form">
+      <Text className="question-form__label">快捷提问</Text>
       {suggestions.length > 0 && (
         <View className="suggestions">
-          {suggestions.map(s => (
-            <View key={s} className="suggestion-chip" onClick={() => onSuggestionClick?.(s)}>
-              <text>{s}</text>
+          {suggestions.map(suggestion => (
+            <View key={suggestion} className="suggestion-chip" onClick={() => onSuggestionClick?.(suggestion)}>
+              <Text className="suggestion-chip__spark">✦</Text>
+              <Text>{suggestion}</Text>
             </View>
           ))}
         </View>
       )}
+
       <View className="input-row">
-        <Input className="question-input" value={value} placeholder="输入你的问题..." disabled={disabled || loading} onChange={(val) => setValue(val)} />
-        <Button type="primary" size="small" disabled={disabled || loading || !value.trim()} onClick={handleSubmit}>{loading ? '...' : '提问'}</Button>
+        <Input
+          className="question-input"
+          value={value}
+          placeholder="例如：他是皇帝吗？"
+          disabled={disabled || loading}
+          confirmType="send"
+          onInput={(e) => setValue(e.detail.value)}
+          onConfirm={handleSubmit}
+        />
+        <View className={`question-submit ${disabled || loading || !value.trim() ? 'is-disabled' : ''}`} onClick={handleSubmit}>
+          <Text className="question-submit__icon">{loading ? '…' : '➤'}</Text>
+        </View>
       </View>
     </View>
   )

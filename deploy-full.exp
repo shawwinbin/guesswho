@@ -1,0 +1,87 @@
+#!/usr/bin/expect -f
+
+set timeout 600
+set password "35332280"
+set host "192.168.31.19"
+set user "shaw"
+
+# 传输新的压缩包
+spawn scp /Users/shaw/history-figure-guess/deploy-package.tar.gz ${user}@${host}:/tmp/
+
+expect {
+    "password:" {
+        send "${password}\r"
+        exp_continue
+    }
+    eof {}
+}
+
+puts "\n压缩包传输完成"
+
+# SSH 到服务器执行部署
+spawn ssh -t ${user}@${host}
+
+expect {
+    "password:" {
+        send "${password}\r"
+        exp_continue
+    }
+    "$ " {}
+}
+
+send "rm -rf ~/history-figure-guess/* && tar -xzf /tmp/deploy-package.tar.gz -C ~/history-figure-guess/ 2>/dev/null\r"
+
+expect "$ "
+send "cd ~/history-figure-guess\r"
+
+expect "$ "
+send "cat > .env << 'EOF'\nCORS_ORIGIN=http://192.168.31.19:18080\nVITE_API_BASE_URL=/v1\nDATABASE_URL=postgres://postgres:postgres@postgres:5432/history_figure_guess\nLLM_BASE_URL=https://api.openai.com/v1\nLLM_API_KEY=replace-me\nLLM_MODEL=gpt-4o-mini\nEOF\r"
+
+expect "$ "
+# 完全重建所有容器
+send "docker compose down --rmi local 2>/dev/null\r"
+
+expect "$ "
+puts "\n开始完全重建..."
+
+send "docker compose build --no-cache\r"
+
+expect {
+    -timeout 400
+    -re "Building|Step|COPY|RUN|npm|exporting|FINISHED" {
+        exp_continue
+    }
+    "$ " {}
+}
+
+puts "\n构建完成"
+
+send "docker compose up -d\r"
+
+expect {
+    -timeout 60
+    -re "Running|Started|Container|Healthy|Network" {
+        exp_continue
+    }
+    "$ " {}
+}
+
+send "sleep 20\r"
+
+expect "$ "
+send "docker compose ps\r"
+
+expect "$ "
+send "docker compose logs --tail=50\r"
+
+expect "$ "
+send "curl -s http://localhost:18080 | head -20 || echo 'Frontend not accessible'\r"
+
+expect "$ "
+send "curl -s http://localhost:18080/v1/health || echo 'API not accessible'\r"
+
+expect "$ "
+send "exit\r"
+
+expect eof
+puts "\n部署完成"

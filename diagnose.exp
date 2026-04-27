@@ -1,0 +1,40 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password "35332280"
+set host "192.168.31.19"
+set user "shaw"
+
+spawn ssh -t ${user}@${host}
+
+expect {
+    "password:" {
+        send "${password}\r"
+        exp_continue
+    }
+    "$ " {}
+}
+
+send "cd ~/history-figure-guess\r"
+
+expect "$ "
+send "docker compose exec postgres psql -U postgres -d history_figure_guess -c 'SELECT 1'\r"
+
+expect "$ "
+send "docker compose logs server --tail=50\r"
+
+expect "$ "
+# 尝试手动启动 server 看详细错误
+send "docker compose exec server node -e \"const { Pool } = require('pg'); const p = new Pool({ connectionString: 'postgres://postgres:postgres@postgres:5432/history_figure_guess', ssl: false }); p.query('SELECT 1').then(r => console.log('OK:', r)).catch(e => console.error('ERR:', e)).finally(() => p.end())\"\r"
+
+expect {
+    -timeout 30
+    -re "OK:|ERR:|error|Error" {
+        exp_continue
+    }
+    "$ " {}
+}
+
+send "exit\r"
+
+expect eof

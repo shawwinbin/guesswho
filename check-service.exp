@@ -1,0 +1,77 @@
+#!/usr/bin/expect -f
+
+set timeout 120
+set password "35332280"
+set host "192.168.31.19"
+set user "shaw"
+
+spawn ssh -t ${user}@${host}
+
+expect {
+    "password:" { send "${password}\r"; exp_continue }
+    "$ " {}
+}
+
+send "cd ~/history-figure-guess\r"
+expect "$ "
+
+# 检查服务是否正常响应
+send "curl -s http://localhost:18080 | head -30\r"
+expect "$ "
+
+send "curl -s http://localhost:18080/v1/sessions 2>&1 | head -10\r"
+expect "$ "
+
+# 手动运行数据库迁移
+send "docker compose exec -T postgres psql -U postgres -d history_figure_guess -f - << 'SQL'\r"
+
+expect "> "
+send "create table if not exists game_sessions (\r"
+
+expect "> "
+send "  id uuid primary key,\r"
+
+expect "> "
+send "  status text not null check (status in ('playing', 'ended')),\r"
+
+expect "> "
+send "  question_limit integer not null,\r"
+
+expect "> "
+send "  question_count integer not null default 0,\r"
+
+expect "> "
+send "  secret_figure_name text not null,\r"
+
+expect "> "
+send "  secret_figure_aliases jsonb not null default '[]'::jsonb,\r"
+
+expect "> "
+send "  secret_figure_era text not null default '',\r"
+
+expect "> "
+send "  revealed_name text,\r"
+
+expect "> "
+send "  created_at timestamptz not null default now(),\r"
+
+expect "> "
+send "  updated_at timestamptz not null default now()\r"
+
+expect "> "
+send ");\r"
+
+expect "> "
+send "SQL\r"
+
+expect "$ "
+
+send "docker compose exec -T postgres psql -U postgres -d history_figure_guess -c 'SELECT table_name FROM information_schema.tables WHERE table_schema = \\\"public\\\"'\r"
+
+expect "$ "
+
+send "docker compose ps\r"
+expect "$ "
+
+send "exit\r"
+expect eof

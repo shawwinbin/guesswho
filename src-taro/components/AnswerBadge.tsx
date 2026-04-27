@@ -13,3 +13,4 @@ export function AnswerBadge({ answer }: AnswerBadgeProps) {
     </View>
   )
 }
+

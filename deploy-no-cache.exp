@@ -1,0 +1,56 @@
+#!/usr/bin/expect -f
+
+set timeout 600
+set password "35332280"
+set host "192.168.31.19"
+set user "shaw"
+
+spawn ssh -t ${user}@${host}
+
+expect {
+    "password:" {
+        send "${password}\r"
+        exp_continue
+    }
+    "$ " {}
+}
+
+send "cd ~/history-figure-guess\r"
+
+expect "$ "
+# 强制重建 server 容器，不使用缓存
+send "docker compose build --no-cache server\r"
+
+expect {
+    -timeout 300
+    -re "Building|Step|COPY|RUN|npm|FINISHED|exporting" {
+        exp_continue
+    }
+    "$ " {}
+}
+
+puts "\nServer 构建完成"
+
+send "docker compose up -d\r"
+
+expect {
+    -timeout 60
+    -re "Running|Started|Container|Healthy|Network" {
+        exp_continue
+    }
+    "$ " {}
+}
+
+send "sleep 15\r"
+
+expect "$ "
+send "docker compose ps\r"
+
+expect "$ "
+send "docker compose logs --tail=40\r"
+
+expect "$ "
+send "exit\r"
+
+expect eof
+puts "\n部署完成"

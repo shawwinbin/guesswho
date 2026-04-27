@@ -1,10 +1,8 @@
 import Taro from '@tarojs/taro'
 import { CreateSessionRequest, GameSessionSnapshot, GuessResponse, QuestionResponse } from './types'
 
-// API base URL - configure in .env or use relative path for H5
-const API_BASE_URL = process.env.TARO_ENV === 'h5'
-  ? (process.env.API_BASE_URL || '')
-  : (process.env.API_BASE_URL || 'https://your-domain.com')
+// H5 is deployed behind the same-origin reverse proxy, so relative paths are stable here.
+const API_BASE_URL = ''
 
 async function taroRequest<T>(path: string, options: {
   method?: 'GET' | 'POST'
