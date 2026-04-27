@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { selectRandomFigure } from '../lib/figureCatalog.js'
 import { badRequest, notFound } from '../lib/errors.js'
+import { answerQuestionLocally, judgeGuessLocally } from '../lib/localAnswerEngine.js'
 import type { SecretFigure, YesNoAnswer } from '../lib/normalization.js'
 import type {
   GameEventRepository,
@@ -105,10 +106,7 @@ export class GameSessionService {
 
     const record = await this.requirePlayableSession(sessionId)
     const figure = this.getSecretFigure(record)
-    const answer = await this.deps.hostService.answerQuestion({
-      question: trimmedQuestion,
-      figure,
-    })
+    const answer = answerQuestionLocally(figure, trimmedQuestion)
 
     const nextCount = record.questionCount + 1
     const limitReached = record.questionLimit > 0 && nextCount >= record.questionLimit
@@ -139,10 +137,11 @@ export class GameSessionService {
     }
 
     const record = await this.requirePlayableSession(sessionId)
-    const verdict = await this.deps.hostService.judgeGuess({
-      guess: trimmedGuess,
-      figure: this.getSecretFigure(record),
-    })
+    const figure = this.getSecretFigure(record)
+    const verdict = {
+      isCorrect: judgeGuessLocally(figure, trimmedGuess),
+      revealedName: figure.name,
+    }
 
     await this.deps.eventRepository.appendGuessEvent(sessionId, trimmedGuess, verdict.isCorrect)
     await this.deps.sessionRepository.updateSessionAfterGuess(sessionId, {
