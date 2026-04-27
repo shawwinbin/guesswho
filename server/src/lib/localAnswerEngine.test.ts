@@ -16,6 +16,19 @@ describe('localAnswerEngine', () => {
     expect(answerQuestionLocally(qinShiHuang, '他是中国人吗？')).toBe('是')
   })
 
+  it('answers relative era questions by dynasty order', () => {
+    const liBai: SecretFigure = {
+      name: '李白',
+      aliases: ['李太白'],
+      era: '唐朝',
+    }
+
+    expect(answerQuestionLocally(qinShiHuang, '他是唐朝以前的吗？')).toBe('是')
+    expect(answerQuestionLocally(qinShiHuang, '他是汉朝之后的吗？')).toBe('不是')
+    expect(answerQuestionLocally(liBai, '他是唐朝以前的吗？')).toBe('不是')
+    expect(answerQuestionLocally(liBai, '他是唐朝及以前的吗？')).toBe('是')
+  })
+
   it('judges guesses locally using names and aliases', () => {
     expect(judgeGuessLocally(qinShiHuang, '秦始皇')).toBe(true)
     expect(judgeGuessLocally(qinShiHuang, '嬴政')).toBe(true)
