@@ -67,7 +67,10 @@ const MAX_HINTS_PER_SESSION = 2
 const NON_GUESS_TERMS = new Set([
   '中国人',
   '外国人',
+  '人物',
+  '历史人物',
   '男人',
+  '男性',
   '女性',
   '男的',
   '女的',
@@ -88,8 +91,12 @@ const NON_GUESS_TERMS = new Set([
   '明朝人',
   '清朝人',
   '古代人',
+  '古代人物',
   '现代人',
+  '现代人物',
   '近代人',
+  '近代人物',
+  '当代人物',
 ])
 
 const LOCAL_GUESS_PATTERNS = [
@@ -202,7 +209,8 @@ export class GameSessionService {
     }
 
     try {
-      return await this.deps.hostService.classifyQuestionIntent({ question: trimmedQuestion })
+      const hostIntent = await this.deps.hostService.classifyQuestionIntent({ question: trimmedQuestion })
+      return sanitizeQuestionIntent(hostIntent)
     } catch {
       return { type: 'question' }
     }
@@ -357,5 +365,25 @@ function normalizeCandidate(candidate: string): string {
 }
 
 function isNonGuessCandidate(candidate: string): boolean {
-  return candidate.length < 2 || NON_GUESS_TERMS.has(candidate) || candidate.endsWith('人')
+  return (
+    candidate.length < 2 ||
+    candidate.includes('的') ||
+    NON_GUESS_TERMS.has(candidate) ||
+    candidate.endsWith('人') ||
+    candidate.endsWith('人物')
+  )
+}
+
+function sanitizeQuestionIntent(intent: QuestionIntent): QuestionIntent {
+  if (intent.type !== 'guess') return intent
+
+  const candidate = normalizeCandidate(intent.guess)
+  if (isNonGuessCandidate(candidate)) {
+    return { type: 'question' }
+  }
+
+  return {
+    type: 'guess',
+    guess: candidate,
+  }
 }

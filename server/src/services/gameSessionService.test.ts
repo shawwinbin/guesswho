@@ -246,6 +246,19 @@ describe('gameSessionService', () => {
     })
   })
 
+  it('keeps attribute and relationship questions out of final-answer intent', async () => {
+    const created = await service.createSession({
+      level: 4,
+      questionLimit: 3,
+      figureScope: 'all',
+    })
+
+    await expect(service.classifyQuestionIntent(created.sessionId, '他是男性吗？')).resolves.toEqual({ type: 'question' })
+    await expect(service.classifyQuestionIntent(created.sessionId, '他是古代人物吗？')).resolves.toEqual({ type: 'question' })
+    await expect(service.classifyQuestionIntent(created.sessionId, '他是李白的朋友吗？')).resolves.toEqual({ type: 'question' })
+    expect(vi.mocked(hostService.classifyQuestionIntent)).not.toHaveBeenCalled()
+  })
+
   it('records guesses and marks the winner state on a correct guess', async () => {
     const created = await service.createSession({
       level: 3,
