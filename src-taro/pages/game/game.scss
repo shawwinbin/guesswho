@@ -141,7 +141,7 @@
 .history-board {
   flex: 1;
   min-height: 0;
-  margin: 0 -6px 252px;
+  margin: 0 -6px 218px;
 }
 
 .history-panel {
@@ -231,6 +231,21 @@
 .chat-message--thinking .chat-message__bubble {
   color: #785447;
   animation: thinkingPulse 1s ease-in-out infinite;
+}
+
+.chat-message--hint {
+  max-width: 94%;
+}
+
+.chat-message--hint .chat-message__meta {
+  min-width: 54px;
+  background: #fcd400;
+  color: #544600;
+}
+
+.chat-message--hint .chat-message__bubble {
+  background: #fff7d1;
+  color: #5f4a14;
 }
 
 .history-bottom-anchor {
@@ -334,23 +349,6 @@
   font-size: 18px;
   font-weight: 900;
   color: #544600;
-}
-
-.ai-hint-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border: 2px solid #3e2723;
-  border-radius: 16px;
-  background: #fff8ef;
-  box-shadow: 2px 2px 0 #3e2723;
-}
-
-.ai-hint-item {
-  font-size: 18px;
-  line-height: 1.45;
-  color: #1e1b13;
 }
 
 @keyframes thinkingPulse {

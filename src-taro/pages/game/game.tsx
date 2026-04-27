@@ -95,7 +95,7 @@ export default function GamePage() {
 
       <View className="history-board">
         <ScrollView className="history-panel" scrollY scrollWithAnimation scrollIntoView={historyBottomId}>
-          {state.history.length === 0 && !pendingQuestion ? (
+          {state.history.length === 0 && state.hints.length === 0 && !pendingQuestion ? (
             <View className="empty-history mg-card">
               <Text className="empty-history__title">还没有提问</Text>
               <Text className="empty-history__desc">先从“他是中国人吗？”开始吧</Text>
@@ -112,6 +112,12 @@ export default function GamePage() {
                     <Text className="chat-message__meta">AI</Text>
                     <Text className="chat-message__bubble">{item.answer}</Text>
                   </View>
+                </View>
+              ))}
+              {state.hints.map((hint, idx) => (
+                <View key={`hint-${idx}`} className="chat-message chat-message--ai chat-message--hint">
+                  <Text className="chat-message__meta">提示</Text>
+                  <Text className="chat-message__bubble">{`提示 ${idx + 1}：${hint}`}</Text>
                 </View>
               ))}
               {pendingQuestion && (
@@ -149,13 +155,6 @@ export default function GamePage() {
           >
             <Text className="ai-hint-button__text">AI 提示（剩余 {state.remainingHints} 次）</Text>
           </View>
-          {state.hints.length > 0 && (
-            <View className="ai-hint-list">
-              {state.hints.map((hint, idx) => (
-                <Text key={idx} className="ai-hint-item">提示 {idx + 1}：{hint}</Text>
-              ))}
-            </View>
-          )}
         </View>
 
         <QuestionForm

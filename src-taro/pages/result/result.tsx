@@ -243,6 +243,7 @@ export default function ResultPage() {
               <View className="figure-name-pill figure-name-pill--soft figure-name-pill--lose">
                 <Text className="figure-name">{revealedName}</Text>
               </View>
+              <Text className="lose-figure-card__answer">{`正确答案是：${revealedName}`}</Text>
               <Text className="lose-figure-card__meta">{`${revealedFigure?.era || '历史'} · ${revealedFigure?.role || '名士'}`}</Text>
               <Text className="lose-figure-card__caption">{figureCaption}</Text>
             </View>

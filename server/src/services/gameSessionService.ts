@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { selectRandomFigure } from '../lib/figureCatalog.js'
 import { badRequest, notFound } from '../lib/errors.js'
-import { answerQuestionByRules, judgeGuessLocally } from '../lib/localAnswerEngine.js'
+import { answerQuestionByRules, findHistoricalFigure, judgeGuessLocally } from '../lib/localAnswerEngine.js'
 import type { SecretFigure, YesNoAnswer } from '../lib/normalization.js'
 import type {
   GameEventRepository,
@@ -227,7 +227,7 @@ export class GameSessionService {
       throw badRequest('本局 AI 提示次数已用完')
     }
 
-    const hint = buildSafeHint(record, existingHints.length)
+    const hint = buildSafeHint(record, existingHints.length, events)
     await this.deps.eventRepository.appendHintEvent(sessionId, hint)
 
     const hints = [...existingHints, { hint }]
@@ -320,14 +320,81 @@ function getRemainingHints(events: Array<{ eventType: string }>): number {
   return Math.max(MAX_HINTS_PER_SESSION - usedHints, 0)
 }
 
-function buildSafeHint(record: GameSessionRecord, usedHints: number): string {
+function buildSafeHint(
+  record: GameSessionRecord,
+  usedHints: number,
+  events: Array<{ eventType: string; questionText: string | null; hintText: string | null }>,
+): string {
   const era = record.secretFigureEra || '一个明确的历史时期'
+  const figure = findHistoricalFigure({
+    name: record.secretFigureName,
+    aliases: record.secretFigureAliases,
+    era: record.secretFigureEra,
+  })
+  const askedQuestions = events
+    .filter(event => event.eventType === 'question' && event.questionText)
+    .map(event => normalizeHintText(event.questionText!))
+  const usedHintTexts = events
+    .filter(event => event.eventType === 'hint' && event.hintText)
+    .map(event => event.hintText!)
+  const candidates = [
+    {
+      dimension: 'era',
+      hint: `这位人物主要活跃在${era}。`,
+    },
+    ...(figure ? [
+      {
+        dimension: 'role',
+        hint: `这位人物的主要身份更接近${figure.role}。`,
+      },
+      {
+        dimension: 'region',
+        hint: `这位人物属于${figure.isChinese ? '中国历史人物' : '外国历史人物'}。`,
+      },
+      {
+        dimension: 'gender',
+        hint: `这位人物是${figure.gender === '女' ? '女性' : '男性'}。`,
+      },
+      {
+        dimension: 'keyword',
+        hint: `可以从“${figure.keywords[0] || figure.role}”这条线索继续缩小范围。`,
+      },
+    ] : []),
+  ]
+  const available = candidates.filter(candidate => {
+    return !usedHintTexts.includes(candidate.hint) && !askedQuestions.some(question => isHintDimensionAlreadyAsked(question, candidate.dimension))
+  })
+  const selected = available[usedHints % Math.max(available.length, 1)] ?? candidates.find(candidate => !usedHintTexts.includes(candidate.hint)) ?? candidates[0]
 
-  if (usedHints === 0) {
-    return `这位人物主要活跃在${era}。`
+  return selected.hint
+}
+
+function normalizeHintText(input: string): string {
+  return input.toLowerCase().replace(/\s+/g, '').replace(/[？?！!。，,、]/g, '')
+}
+
+function isHintDimensionAlreadyAsked(question: string, dimension: string): boolean {
+  if (dimension === 'era') {
+    return ['朝', '代', '时期', '以前', '以后', '之前', '之后', '古代', '现代', '近代', '当代', '上古', '三国', '春秋', '战国'].some(token => question.includes(token))
   }
 
-  return `继续从${era}相关的身份、作品或重大事件切入，会比直接猜名字更稳。`
+  if (dimension === 'role') {
+    return ['身份', '职业', '皇帝', '诗人', '词人', '作家', '思想家', '哲学家', '科学家', '医学家', '将军', '武将', '政治家', '画家', '僧人'].some(token => question.includes(token))
+  }
+
+  if (dimension === 'region') {
+    return ['中国', '外国', '欧洲', '美国', '英国', '法国', '德国', '日本', '印度', '俄罗斯'].some(token => question.includes(token))
+  }
+
+  if (dimension === 'gender') {
+    return ['男', '女', '男性', '女性', '性别'].some(token => question.includes(token))
+  }
+
+  if (dimension === 'keyword') {
+    return false
+  }
+
+  return false
 }
 
 function classifyQuestionIntentLocally(question: string): QuestionIntent | null {

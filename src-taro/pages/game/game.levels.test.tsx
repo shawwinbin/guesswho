@@ -235,6 +235,7 @@ describe('GamePage level HUD', () => {
 
     expect(await screen.findByText('AI 提示（剩余 1 次）')).toBeInTheDocument()
     expect(screen.getByText('提示 1：这位人物主要活跃在唐朝。')).toBeInTheDocument()
+    expect(screen.getByText('提示')).toBeInTheDocument()
   })
 
   it('renders each question and AI answer as separate chat messages', async () => {

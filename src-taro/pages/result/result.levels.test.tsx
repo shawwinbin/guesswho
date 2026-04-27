@@ -139,6 +139,7 @@ describe('ResultPage level progression', () => {
 
     expect(screen.getByText('已为你保留至第4关')).toBeInTheDocument()
     expect(screen.getByText('从第4关继续')).toBeInTheDocument()
+    expect(screen.getByText('正确答案是：李白')).toBeInTheDocument()
     expect(getProgressWrites()).toHaveLength(1)
     expect(storageSetMock).toHaveBeenCalledWith(LEVEL_PROGRESS_KEY, createProgress({
       currentLevel: 4,

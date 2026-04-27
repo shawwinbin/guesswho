@@ -313,6 +313,20 @@ describe('gameSessionService', () => {
     expect(secondHint.hint).not.toContain('司马迁')
   })
 
+  it('does not repeat AI hint dimensions that were already asked about', async () => {
+    const created = await service.createSession({
+      level: 4,
+      questionLimit: 20,
+      figureScope: 'all',
+    })
+
+    await service.submitQuestion(created.sessionId, '他是唐朝以前的吗？')
+    const hint = await service.requestHint(created.sessionId)
+
+    expect(hint.hint).not.toContain('秦朝')
+    expect(hint.hint).toContain('身份')
+  })
+
   it('rejects a third AI hint for the same session', async () => {
     const created = await service.createSession({
       level: 4,
