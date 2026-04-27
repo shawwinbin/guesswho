@@ -91,7 +91,8 @@ vi.mock('../../hooks/useGameSession', () => ({
 vi.mock('../../components/QuestionForm', () => ({
   QuestionForm: ({ onSubmit }: { onSubmit: (question: string) => void }) => (
     <div>
-      <button onClick={() => onSubmit('他是李白吗？')}>AskGuess</button>
+      <button onClick={() => onSubmit('是他李白吗？')}>AskGuess</button>
+      <button onClick={() => onSubmit('他是李白吗？')}>AskNamedQuestion</button>
       <button onClick={() => onSubmit('他是诗人吗？')}>AskCategory</button>
       <div>QuestionForm</div>
     </div>
@@ -169,7 +170,7 @@ describe('GamePage level HUD', () => {
 
     fireEvent.click(await screen.findByText('AskGuess'))
 
-    expect(askQuestionMock).toHaveBeenCalledWith('他是李白吗？')
+    expect(askQuestionMock).toHaveBeenCalledWith('是他李白吗？')
     expect(makeGuessMock).not.toHaveBeenCalled()
   })
 
@@ -179,8 +180,18 @@ describe('GamePage level HUD', () => {
 
     fireEvent.click(await screen.findByText('AskGuess'))
 
-    expect(askQuestionMock).toHaveBeenCalledWith('他是李白吗？')
+    expect(askQuestionMock).toHaveBeenCalledWith('是他李白吗？')
     await waitFor(() => expect(makeGuessMock).toHaveBeenCalledWith('李白'))
+  })
+
+  it('keeps a normal named question playable even when the answer is yes', async () => {
+    askQuestionMock.mockResolvedValueOnce({ answer: '是' })
+    render(<GamePage />)
+
+    fireEvent.click(await screen.findByText('AskNamedQuestion'))
+
+    expect(askQuestionMock).toHaveBeenCalledWith('他是李白吗？')
+    expect(makeGuessMock).not.toHaveBeenCalled()
   })
 
   it('keeps category questions as normal yes-no questions', async () => {
