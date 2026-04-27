@@ -145,13 +145,11 @@ describe('IndexPage level progress', () => {
       return null
     })
 
-    const { container } = render(<IndexPage />)
-    const streakCard = container.querySelector('.stat-card')
+    render(<IndexPage />)
 
     expect(screen.getByText('继续第3关')).toBeInTheDocument()
-    expect(streakCard?.textContent).toContain('连胜记录')
-    expect(streakCard?.textContent).toContain('2')
-    expect(streakCard?.textContent).toContain('次')
+    expect(screen.getByText('2 关')).toBeInTheDocument()
+    expect(screen.getByText('4 关')).toBeInTheDocument()
 
     storedProgress = createProgress({
       currentLevel: 1,
@@ -171,6 +169,6 @@ describe('IndexPage level progress', () => {
 
     expect(screen.getByText('继续第1关')).toBeInTheDocument()
     expect(screen.getAllByText('第1关').length).toBeGreaterThan(0)
-    expect(streakCard?.textContent).toContain('0')
+    expect(screen.getByText('0 关')).toBeInTheDocument()
   })
 })

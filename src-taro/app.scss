@@ -1,9 +1,26 @@
-// src-taro/app.scss
 @import '@nutui/nutui-react-taro/dist/styles/themes/default.css';
 
 page {
-  background-color: #f5f5f5;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mg-bg: #fdf5e6;
+  --mg-paper: #fffaf1;
+  --mg-paper-deep: #f5e8d5;
+  --mg-panel: #f8efdf;
+  --mg-ink: #2e170f;
+  --mg-ink-soft: #785447;
+  --mg-red: #d63b2d;
+  --mg-red-deep: #8a211b;
+  --mg-gold: #ffd33d;
+  --mg-gold-deep: #c79600;
+  --mg-line: #2b1a16;
+  --mg-muted: #eadac3;
+  --mg-yes: #ffd82f;
+  --mg-no: #f1dfc6;
+  background:
+    radial-gradient(circle at top, rgba(255, 209, 112, 0.14), transparent 30%),
+    var(--mg-bg);
+  background-size: auto;
+  color: var(--mg-ink);
+  font-family: 'Plus Jakarta Sans', 'Avenir Next', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
 
 .container {
@@ -20,4 +37,127 @@ page {
   background-color: #f0f0f0;
   color: #333;
   border-radius: 8px;
+}
+
+.mini-game-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 22px 20px calc(28px + env(safe-area-inset-bottom));
+  color: var(--mg-ink);
+}
+
+.mg-card {
+  position: relative;
+  border: 1px solid rgba(43, 26, 22, 0.12);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #fffaf3 0%, #f7ebd8 100%);
+  box-shadow: 0 12px 28px rgba(80, 48, 24, 0.08);
+}
+
+.mg-card--gold {
+  box-shadow: 0 12px 28px rgba(164, 120, 25, 0.12);
+}
+
+.mg-pill-button,
+.mg-icon-button,
+.mg-primary-button,
+.mg-secondary-button,
+.mg-gold-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(43, 26, 22, 0.16);
+  box-sizing: border-box;
+  transition: transform 0.15s ease;
+}
+
+.mg-pill-button:active,
+.mg-icon-button:active,
+.mg-primary-button:active,
+.mg-secondary-button:active,
+.mg-gold-button:active {
+  transform: translateY(2px);
+}
+
+.mg-primary-button {
+  min-height: 82px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #e5483a 0%, #d63b2d 75%);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(138, 33, 27, 0.2);
+}
+
+.mg-secondary-button {
+  min-height: 68px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fbfaf6 0%, #e9e3d6 100%);
+  color: var(--mg-ink);
+  box-shadow: 0 10px 20px rgba(80, 48, 24, 0.08);
+}
+
+.mg-gold-button {
+  min-height: 74px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffe267 0%, var(--mg-gold) 76%);
+  color: var(--mg-ink);
+  box-shadow: 0 10px 20px rgba(199, 150, 0, 0.16);
+}
+
+.mg-icon-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fffaf2 0%, #eee2cf 100%);
+  box-shadow: 0 8px 18px rgba(80, 48, 24, 0.1);
+}
+
+.mg-bottom-dock {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 18px;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+  border: 3px solid var(--mg-line);
+  border-radius: 28px 28px 0 0;
+  background: #efe3d1;
+  box-shadow: 0 -3px 0 rgba(43, 26, 22, 0.12);
+}
+
+.mg-dock-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 72px;
+  border-radius: 20px;
+  font-size: 18px;
+  color: #715f53;
+}
+
+.mg-dock-item__icon {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.mg-dock-item__label {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.index-brand,
+.hero-card__hint,
+.hero-card__badge-text,
+.index-start-button__text,
+.level-progress-card__value {
+  font-family: 'Epilogue', 'Plus Jakarta Sans', 'Avenir Next', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+.mg-dock-item--active {
+  border: 3px solid var(--mg-line);
+  background: linear-gradient(180deg, #ffe56d 0%, var(--mg-gold) 80%);
+  color: #7a4b00;
 }

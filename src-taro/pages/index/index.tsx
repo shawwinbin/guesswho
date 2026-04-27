@@ -5,13 +5,6 @@ import { buildVisibleLevels, getLevelHint, getLevelTitle, readLevelProgress, set
 import type { LevelProgress } from '../../lib/types'
 import './index.scss'
 
-const DOCK_ITEMS = [
-  { key: 'home', label: 'Home', icon: '⌂', active: true },
-  { key: 'history', label: 'History', icon: '⌘' },
-  { key: 'honor', label: 'Honor', icon: '✦' },
-  { key: 'vault', label: 'Vault', icon: '▣' }
-]
-
 function buildRibbonLevels(progress: LevelProgress): number[] {
   const visibleUnlocked = buildVisibleLevels(progress, 2)
   const ribbonLevels = [...visibleUnlocked]
@@ -47,13 +40,10 @@ export default function IndexPage() {
   return (
     <View className="index-page mini-game-page">
       <View className="index-topbar">
-        <View className="profile-chip">
-          <Text className="profile-chip__icon">◎</Text>
-          <Text className="profile-chip__label">Scholar Profile</Text>
-        </View>
+        <Text className="profile-chip">第{progress.currentLevel}关</Text>
         <Text className="index-brand">
-          <Text className="index-brand__main">GUOFENG</Text>
-          <Text className="index-brand__sub"> PLAY</Text>
+          <Text className="index-brand__main">历史人物</Text>
+          <Text className="index-brand__sub">猜猜看</Text>
         </Text>
         <View className="mg-icon-button" onClick={handleSettings}>
           <Text className="index-gear">⚙</Text>
@@ -61,38 +51,10 @@ export default function IndexPage() {
       </View>
 
       <View className="hero-stack">
-        <View className="hero-cloud hero-cloud--left">
-          <Text>☁</Text>
-          <Text>☁</Text>
-        </View>
-        <View className="hero-cloud hero-cloud--right">
-          <Text>☁</Text>
-          <Text>☁</Text>
-        </View>
-
-        <View className="hero-seal">
-          <Text className="hero-seal__prefix">那些年</Text>
-          <Text className="hero-seal__text">秘藏</Text>
-        </View>
-
         <View className="hero-card mg-card">
-          <View className="hero-card__pins">
-            <Text>•</Text>
-            <Text>•</Text>
-          </View>
           <View className="hero-card__paper">
-            <View className="hero-card__corners hero-card__corners--lt" />
-            <View className="hero-card__corners hero-card__corners--rt" />
-            <View className="hero-card__corners hero-card__corners--lb" />
-            <View className="hero-card__corners hero-card__corners--rb" />
-            <Text className="hero-card__question hero-card__question--lt">?</Text>
-            <Text className="hero-card__question hero-card__question--rt">?</Text>
-            <Text className="hero-card__question hero-card__question--rb">?</Text>
             <View className="hero-card__stage">
-              <View className="hero-card__lantern hero-card__lantern--left" />
-              <View className="hero-card__lantern hero-card__lantern--right" />
               <View className="hero-card__portrait">
-                <View className="hero-card__halo" />
                 <View className="hero-card__silhouette hero-card__silhouette--hat" />
                 <View className="hero-card__silhouette hero-card__silhouette--head" />
                 <View className="hero-card__silhouette hero-card__silhouette--body" />
@@ -147,56 +109,8 @@ export default function IndexPage() {
       </View>
 
       <View className="mg-primary-button index-start-button" onClick={handleStart}>
-        <Text className="index-start-button__spark index-start-button__spark--left">✦</Text>
         <Text className="index-start-button__arrow">▶</Text>
         <Text className="index-start-button__text">继续第{progress.currentLevel}关</Text>
-        <Text className="index-start-button__spark index-start-button__spark--right">✦</Text>
-      </View>
-
-      <View className="index-secondary-row">
-        <View className="mg-secondary-button index-secondary-card">
-          <Text className="index-secondary-card__icon">👥</Text>
-          <Text className="index-secondary-card__text">邀请好友</Text>
-        </View>
-        <View className="mg-icon-button index-secondary-settings" onClick={handleSettings}>
-          <Text className="index-gear">⚙</Text>
-        </View>
-      </View>
-
-      <View className="challenge-card mg-card mg-card--gold">
-        <View className="challenge-card__left">
-          <View className="challenge-card__coin">Q</View>
-          <View>
-            <Text className="challenge-card__title">今日挑战</Text>
-            <Text className="challenge-card__desc">纵横史册仅仅 4 次</Text>
-          </View>
-        </View>
-        <View className="challenge-card__action" onClick={handleStart}>
-          <Text className="challenge-card__action-text">去挑战</Text>
-        </View>
-      </View>
-
-      <View className="index-stats">
-        <View className="stat-card mg-card">
-          <Text className="stat-card__label">连胜记录</Text>
-          <Text className="stat-card__value stat-card__value--hot">{progress.levelStreak}</Text>
-          <Text className="stat-card__suffix">次</Text>
-        </View>
-        <View className="stat-card mg-card">
-          <Text className="stat-card__label">我的图鉴</Text>
-          <Text className="stat-card__value">12/108</Text>
-        </View>
-      </View>
-
-      <View className="mg-bottom-dock">
-        {DOCK_ITEMS.map((item) => (
-          <View key={item.key} className={`mg-dock-item ${item.active ? 'mg-dock-item--active' : ''}`}>
-            <View className="mg-dock-item__icon-shell">
-              <Text className="mg-dock-item__icon">{item.icon}</Text>
-            </View>
-            <Text className="mg-dock-item__label">{item.label}</Text>
-          </View>
-        ))}
       </View>
     </View>
   )
