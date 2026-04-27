@@ -41,10 +41,11 @@ export interface GameSessionRecord {
 export interface GameEventRecord {
   id: string
   sessionId: string
-  eventType: 'question' | 'guess'
+  eventType: 'question' | 'guess' | 'hint'
   questionText: string | null
   answerText: '是' | '不是' | null
   guessText: string | null
+  hintText: string | null
   isCorrect: boolean | null
   createdAt: Date
 }
@@ -63,6 +64,7 @@ export interface GameSessionRepository {
 export interface GameEventRepository {
   appendQuestionEvent(sessionId: string, question: string, answer: '是' | '不是'): Promise<void>
   appendGuessEvent(sessionId: string, guess: string, isCorrect: boolean): Promise<void>
+  appendHintEvent(sessionId: string, hint: string): Promise<void>
   listSessionEvents(options: ListSessionEventsOptions): Promise<GameEventRecord[]>
 }
 
@@ -93,15 +95,22 @@ function mapSessionRow(row: Record<string, unknown>): GameSessionRecord {
 }
 
 function mapEventRow(row: Record<string, unknown>): GameEventRecord {
+  const eventType = row.event_type === 'guess'
+    ? 'guess'
+    : row.event_type === 'hint'
+      ? 'hint'
+      : 'question'
+
   return {
     id: String(row.id),
     sessionId: String(row.session_id),
-    eventType: row.event_type === 'guess' ? 'guess' : 'question',
+    eventType,
     questionText: row.question_text ? String(row.question_text) : null,
     answerText: row.answer_text === '是' || row.answer_text === '不是'
       ? row.answer_text
       : null,
     guessText: row.guess_text ? String(row.guess_text) : null,
+    hintText: row.hint_text ? String(row.hint_text) : null,
     isCorrect: typeof row.is_correct === 'boolean' ? row.is_correct : null,
     createdAt: new Date(String(row.created_at)),
   }
@@ -185,8 +194,9 @@ export class PostgresGameEventRepository implements GameEventRepository {
         question_text,
         answer_text,
         guess_text,
+        hint_text,
         is_correct
-      ) values ($1, $2, 'question', $3, $4, null, null)`,
+      ) values ($1, $2, 'question', $3, $4, null, null, null)`,
       [randomUUID(), sessionId, question, answer],
     )
   }
@@ -200,9 +210,26 @@ export class PostgresGameEventRepository implements GameEventRepository {
         question_text,
         answer_text,
         guess_text,
+        hint_text,
         is_correct
-      ) values ($1, $2, 'guess', null, null, $3, $4)`,
+      ) values ($1, $2, 'guess', null, null, $3, null, $4)`,
       [randomUUID(), sessionId, guess, isCorrect],
+    )
+  }
+
+  async appendHintEvent(sessionId: string, hint: string): Promise<void> {
+    await this.pool.query(
+      `insert into game_events (
+        id,
+        session_id,
+        event_type,
+        question_text,
+        answer_text,
+        guess_text,
+        hint_text,
+        is_correct
+      ) values ($1, $2, 'hint', null, null, null, $3, null)`,
+      [randomUUID(), sessionId, hint],
     )
   }
 

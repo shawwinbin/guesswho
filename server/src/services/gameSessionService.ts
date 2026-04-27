@@ -19,6 +19,10 @@ export interface GuessHistoryItem {
   isCorrect: boolean
 }
 
+export interface HintHistoryItem {
+  hint: string
+}
+
 export interface GameSessionSnapshot {
   sessionId: string
   level: number
@@ -28,6 +32,8 @@ export interface GameSessionSnapshot {
   remainingQuestions: number | null
   history: QuestionHistoryItem[]
   guesses: GuessHistoryItem[]
+  hints: HintHistoryItem[]
+  remainingHints: number
   revealedName?: string
 }
 
@@ -44,11 +50,19 @@ export interface SubmitGuessResponse extends GuessVerdict {
   status: 'ended'
 }
 
+export interface HintResponse {
+  hint: string
+  hints: HintHistoryItem[]
+  remainingHints: number
+}
+
 interface GameSessionServiceParams {
   sessionRepository: GameSessionRepository
   eventRepository: GameEventRepository
   hostService: HostLlmService
 }
+
+const MAX_HINTS_PER_SESSION = 2
 
 export class GameSessionService {
   constructor(private readonly deps: GameSessionServiceParams) {}
@@ -141,6 +155,28 @@ export class GameSessionService {
     }
   }
 
+  async requestHint(sessionId: string): Promise<HintResponse> {
+    const record = await this.requirePlayableSession(sessionId)
+    const events = await this.deps.eventRepository.listSessionEvents({ sessionId })
+    const existingHints = events
+      .filter(event => event.eventType === 'hint' && event.hintText)
+      .map(event => ({ hint: event.hintText! }))
+
+    if (existingHints.length >= MAX_HINTS_PER_SESSION) {
+      throw badRequest('本局 AI 提示次数已用完')
+    }
+
+    const hint = buildSafeHint(record, existingHints.length)
+    await this.deps.eventRepository.appendHintEvent(sessionId, hint)
+
+    const hints = [...existingHints, { hint }]
+    return {
+      hint,
+      hints,
+      remainingHints: Math.max(MAX_HINTS_PER_SESSION - hints.length, 0),
+    }
+  }
+
   private async requireSession(sessionId: string): Promise<GameSessionRecord> {
     const record = await this.deps.sessionRepository.findSessionById(sessionId)
     if (!record) {
@@ -189,6 +225,12 @@ export class GameSessionService {
           guess: event.guessText!,
           isCorrect: event.isCorrect!,
         })),
+      hints: events
+        .filter(event => event.eventType === 'hint' && event.hintText)
+        .map(event => ({
+          hint: event.hintText!,
+        })),
+      remainingHints: getRemainingHints(events),
       ...(record.revealedName ? { revealedName: record.revealedName } : {}),
     }
   }
@@ -197,4 +239,19 @@ export class GameSessionService {
 function getRemainingQuestions(record: Pick<GameSessionRecord, 'questionCount' | 'questionLimit'>): number | null {
   if (record.questionLimit <= 0) return null
   return Math.max(record.questionLimit - record.questionCount, 0)
+}
+
+function getRemainingHints(events: Array<{ eventType: string }>): number {
+  const usedHints = events.filter(event => event.eventType === 'hint').length
+  return Math.max(MAX_HINTS_PER_SESSION - usedHints, 0)
+}
+
+function buildSafeHint(record: GameSessionRecord, usedHints: number): string {
+  const era = record.secretFigureEra || '一个明确的历史时期'
+
+  if (usedHints === 0) {
+    return `这位人物主要活跃在${era}。`
+  }
+
+  return `继续从${era}相关的身份、作品或重大事件切入，会比直接猜名字更稳。`
 }

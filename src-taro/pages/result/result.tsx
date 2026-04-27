@@ -1,6 +1,6 @@
 import { View, Text } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { figures } from '../../data/figures'
 import {
   applyLevelResult,
@@ -144,7 +144,6 @@ export default function ResultPage() {
   const revealedName = nameParam || '未知人物'
   const questionCount = parseCount(countParam)
   const resultType = isWinner ? 'win' : 'lose'
-  const [showHints, setShowHints] = useState(false)
   const settings = useMemo(() => storage.get<GameSettings>('game-settings') || DEFAULT_SETTINGS, [])
   const storedProgress = readLevelProgress()
   const playedLevel = parseLevel(levelParam, storedProgress.currentLevel)
@@ -153,7 +152,6 @@ export default function ResultPage() {
   const figureCaption = useMemo(() => buildFigureCaption(revealedFigure, revealedName), [revealedFigure, revealedName])
   const hintItems = useMemo(() => buildHintItems(revealedFigure), [revealedFigure])
   const loseResultBadge = questionCount >= settings.questionLimit ? '机会用尽' : '猜错终局'
-  const remainingQuestions = Math.max(settings.questionLimit - questionCount, 0)
   const resumeLevel = progress.currentLevel
   const progressTitle = getLevelTitle(resumeLevel)
   const progressBannerLabel = isWinner ? `第${playedLevel}关通关` : `第${playedLevel}关未通关`
@@ -163,10 +161,8 @@ export default function ResultPage() {
   const primaryCtaLabel = isWinner ? `挑战第${resumeLevel}关` : `从第${resumeLevel}关继续`
   const ribbonLevels = buildVisibleLevels(progress, 2)
   const winStatItems = [
-    { icon: '◔', label: '提问次数', value: `${questionCount}/${settings.questionLimit}` },
-    { icon: '◉', label: '剩余机会', value: `${remainingQuestions}次` },
-    { icon: '⬈', label: '已解锁', value: `第${progress.highestUnlockedLevel}关` },
-    { icon: '✦', label: '连胜记录', value: `${progress.levelStreak}连胜` },
+    { label: '提问次数', value: `${questionCount}/${settings.questionLimit}` },
+    { label: '已解锁', value: `第${progress.highestUnlockedLevel}关` },
   ]
 
   useEffect(() => {
@@ -179,19 +175,8 @@ export default function ResultPage() {
     writeLevelProgress(progress)
   }, [progress])
 
-  useEffect(() => {
-    setShowHints(false)
-  }, [isWinner, revealedName])
-
   const handleRestart = () => Taro.redirectTo({ url: '/pages/game/game' })
   const handleBackHome = () => Taro.redirectTo({ url: '/pages/index/index' })
-  const handleShare = () => {
-    Taro.showToast({
-      title: '请使用右上角菜单分享战绩',
-      icon: 'none',
-      duration: 2000,
-    })
-  }
 
   return (
     <View className="result-page mini-game-page">
@@ -285,7 +270,6 @@ export default function ResultPage() {
           <View className="result-stats">
             {winStatItems.map(item => (
               <View key={item.label} className="result-stat">
-                <Text className="result-stat__icon">{item.icon}</Text>
                 <Text className="result-stat__label">{item.label}</Text>
                 <Text className="result-stat__value">{item.value}</Text>
               </View>
@@ -303,19 +287,10 @@ export default function ResultPage() {
           <View className="mg-secondary-button result-secondary-button" onClick={handleBackHome}>
             <Text className="result-secondary-button__text">返回首页</Text>
           </View>
-          {isWinner ? (
-            <View className="result-share-button" onClick={handleShare}>
-              <Text className="result-share-button__text">分享成就</Text>
-            </View>
-          ) : (
-            <View className="result-share-button result-share-button--gold" onClick={() => setShowHints(prev => !prev)}>
-              <Text className="result-share-button__text result-share-button__text--dark">{showHints ? '收起提示' : '查看提示'}</Text>
-            </View>
-          )}
         </View>
       </View>
 
-      {!isWinner && showHints && (
+      {!isWinner && (
         <View className="lose-hints mg-card">
           <Text className="lose-hints__title">下局可以这样问</Text>
           {hintItems.map((hint, index) => (

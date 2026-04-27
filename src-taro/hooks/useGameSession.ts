@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { createSession, fetchSession, submitQuestion, submitGuess } from '../lib/gameApi'
+import { createSession, fetchSession, submitQuestion, submitGuess, requestHint } from '../lib/gameApi'
 import { readLevelProgress } from '../lib/levelProgress'
 import { storage } from '../lib/storage'
 import { GameSessionSnapshot, GameSettings, QuestionAnswer, YesNoAnswer } from '../lib/types'
@@ -12,6 +12,8 @@ export interface GameState {
   level: number | null
   history: QuestionAnswer[]
   guesses: string[]
+  hints: string[]
+  remainingHints: number
   isWinner: boolean
   errorMsg: string | null
   revealedName: string | null
@@ -27,6 +29,8 @@ const INITIAL_STATE: GameState = {
   level: null,
   history: [],
   guesses: [],
+  hints: [],
+  remainingHints: 2,
   isWinner: false,
   errorMsg: null,
   revealedName: null,
@@ -63,6 +67,8 @@ export function useGameSession(settings: GameSettings) {
       level: resolveLevel(snapshot),
       history: snapshot.history,
       guesses: snapshot.guesses.map(g => g.guess),
+      hints: snapshot.hints?.map(item => item.hint) ?? [],
+      remainingHints: snapshot.remainingHints ?? Math.max(2 - (snapshot.hints?.length ?? 0), 0),
       isWinner: snapshot.guesses[snapshot.guesses.length - 1]?.isCorrect ?? false,
       errorMsg: null,
       revealedName: snapshot.revealedName ?? null,
@@ -173,6 +179,25 @@ export function useGameSession(settings: GameSettings) {
     }
   }, [state.sessionId, state.phase])
 
+  const requestAiHint = useCallback(async () => {
+    if (!state.sessionId || state.phase !== 'playing' || state.remainingHints <= 0) return
+    setIsLoading(true)
+    setState(prev => ({ ...prev, errorMsg: null }))
+    try {
+      const res = await requestHint(state.sessionId)
+      setState(prev => ({
+        ...prev,
+        hints: res.hints.map(item => item.hint),
+        remainingHints: res.remainingHints
+      }))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '获取提示失败'
+      setState(prev => ({ ...prev, errorMsg: msg }))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [state.sessionId, state.phase, state.remainingHints])
+
   const restart = useCallback(async (levelOverride?: number) => {
     const nextLevel = levelOverride ?? state.level ?? resolveLevel()
     clearPersistedSession()
@@ -182,5 +207,5 @@ export function useGameSession(settings: GameSettings) {
 
   const clearError = useCallback(() => setState(prev => ({ ...prev, errorMsg: null })), [])
 
-  return { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, restart, clearError }
+  return { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, requestAiHint, restart, clearError }
 }

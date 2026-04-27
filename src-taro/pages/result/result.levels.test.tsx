@@ -6,9 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LEVEL_PROGRESS_KEY } from '../../lib/levelProgress'
 import type { LevelProgress } from '../../lib/types'
 
-const { redirectToMock, showToastMock, storageGetMock, storageSetMock, routerState } = vi.hoisted(() => ({
+const { redirectToMock, storageGetMock, storageSetMock, routerState } = vi.hoisted(() => ({
   redirectToMock: vi.fn(),
-  showToastMock: vi.fn(),
   storageGetMock: vi.fn(),
   storageSetMock: vi.fn(),
   routerState: {
@@ -19,7 +18,6 @@ const { redirectToMock, showToastMock, storageGetMock, storageSetMock, routerSta
 vi.mock('@tarojs/taro', () => ({
   default: {
     redirectTo: redirectToMock,
-    showToast: showToastMock,
   },
   useRouter: () => routerState,
 }))
@@ -87,7 +85,6 @@ function renderWithParams(
 describe('ResultPage level progression', () => {
   beforeEach(() => {
     redirectToMock.mockReset()
-    showToastMock.mockReset()
     storageGetMock.mockReset()
     storageSetMock.mockReset()
     routerState.params = {}
@@ -111,9 +108,7 @@ describe('ResultPage level progression', () => {
     expect(screen.getByText('挑战第5关')).toBeInTheDocument()
     expect(screen.getByText('提问次数')).toBeInTheDocument()
     expect(screen.getByText('6/20')).toBeInTheDocument()
-    expect(screen.getByText('剩余机会')).toBeInTheDocument()
-    expect(screen.getByText('14次')).toBeInTheDocument()
-    expect(screen.getByText('连胜记录')).toBeInTheDocument()
+    expect(screen.getByText('已解锁')).toBeInTheDocument()
     expect(screen.queryByText('01:24')).not.toBeInTheDocument()
     expect(screen.queryByText('6/5')).not.toBeInTheDocument()
     expect(screen.queryByText('🪙 +50')).not.toBeInTheDocument()
@@ -179,29 +174,6 @@ describe('ResultPage level progression', () => {
         lastResult: 'win',
       }),
     ])
-  })
-
-  it('shows a share instruction toast on the win share button', () => {
-    renderWithParams(
-      { winner: 'true', name: '李白', count: '6', level: '4' },
-      {
-        storedProgress: createProgress({
-          currentLevel: 4,
-          highestUnlockedLevel: 4,
-          highestClearedLevel: 3,
-          levelStreak: 1,
-          lastResult: 'lose',
-        }),
-      },
-    )
-
-    fireEvent.click(screen.getByText('分享成就'))
-
-    expect(showToastMock).toHaveBeenCalledWith({
-      title: '请使用右上角菜单分享战绩',
-      icon: 'none',
-      duration: 2000,
-    })
   })
 
   it('routes the primary CTA back into the game page for the next round', () => {

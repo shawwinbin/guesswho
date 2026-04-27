@@ -84,6 +84,7 @@ class InMemoryGameEventRepository implements GameEventRepository {
       questionText: question,
       answerText: answer,
       guessText: null,
+      hintText: null,
       isCorrect: null,
       createdAt: new Date(),
     })
@@ -97,7 +98,22 @@ class InMemoryGameEventRepository implements GameEventRepository {
       questionText: null,
       answerText: null,
       guessText: guess,
+      hintText: null,
       isCorrect,
+      createdAt: new Date(),
+    })
+  }
+
+  async appendHintEvent(sessionId: string, hint: string): Promise<void> {
+    this.events.push({
+      id: randomUUID(),
+      sessionId,
+      eventType: 'hint',
+      questionText: null,
+      answerText: null,
+      guessText: null,
+      hintText: hint,
+      isCorrect: null,
       createdAt: new Date(),
     })
   }
@@ -218,5 +234,43 @@ describe('gameSessionService', () => {
     await service.submitQuestion(created.sessionId, '他是皇帝吗？')
 
     await expect(service.submitQuestion(created.sessionId, '他是中国人吗？')).rejects.toBeInstanceOf(AppError)
+  })
+
+  it('returns two safe AI hints and tracks the remaining hint count', async () => {
+    const created = await service.createSession({
+      level: 4,
+      questionLimit: 20,
+      figureScope: 'all',
+    })
+
+    const firstHint = await service.requestHint(created.sessionId)
+    const secondHint = await service.requestHint(created.sessionId)
+    const snapshot = await service.getSessionSnapshot(created.sessionId)
+
+    expect(firstHint.remainingHints).toBe(1)
+    expect(secondHint.remainingHints).toBe(0)
+    expect(snapshot.remainingHints).toBe(0)
+    expect(snapshot.hints).toEqual([
+      { hint: firstHint.hint },
+      { hint: secondHint.hint },
+    ])
+    expect(firstHint.hint).not.toContain('司马迁')
+    expect(secondHint.hint).not.toContain('司马迁')
+  })
+
+  it('rejects a third AI hint for the same session', async () => {
+    const created = await service.createSession({
+      level: 4,
+      questionLimit: 20,
+      figureScope: 'all',
+    })
+
+    await service.requestHint(created.sessionId)
+    await service.requestHint(created.sessionId)
+
+    await expect(service.requestHint(created.sessionId)).rejects.toMatchObject({
+      statusCode: 400,
+      message: '本局 AI 提示次数已用完',
+    })
   })
 })

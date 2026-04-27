@@ -82,14 +82,14 @@ describe('SettingsPage level reset flows', () => {
     })
   })
 
-  it('resets settings, login data, and level progress while invalidating any previously saved round restore', () => {
+  it('resets settings and level progress while invalidating any previously saved round restore', () => {
     render(<SettingsPage />)
 
-    fireEvent.click(screen.getByText('重置数据（设置/登录/关卡）'))
+    fireEvent.click(screen.getByText('重置数据（设置/关卡）'))
 
     expect(dialogConfirmMock).toHaveBeenCalledWith({
       title: '清除数据',
-      content: '确定要清除设置、登录信息和关卡进度吗？',
+      content: '确定要清除设置和关卡进度吗？',
       onConfirm: expect.any(Function),
     })
     expect(storageRemoveMock).toHaveBeenCalledWith('game-settings')

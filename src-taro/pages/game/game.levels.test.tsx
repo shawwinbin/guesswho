@@ -12,6 +12,7 @@ const {
   startGameMock,
   askQuestionMock,
   makeGuessMock,
+  requestAiHintMock,
   restartMock,
   clearErrorMock,
 } = vi.hoisted(() => ({
@@ -20,6 +21,7 @@ const {
   startGameMock: vi.fn(),
   askQuestionMock: vi.fn(),
   makeGuessMock: vi.fn(),
+  requestAiHintMock: vi.fn(),
   restartMock: vi.fn(),
   clearErrorMock: vi.fn(),
 }))
@@ -34,6 +36,8 @@ const mockGameState: GameState = {
   errorMsg: null,
   revealedName: null,
   remainingQuestions: 20,
+  hints: [],
+  remainingHints: 2,
 }
 
 const mockGameSession = {
@@ -43,6 +47,7 @@ const mockGameSession = {
   startGame: startGameMock,
   askQuestion: askQuestionMock,
   makeGuess: makeGuessMock,
+  requestAiHint: requestAiHintMock,
   restart: restartMock,
   clearError: clearErrorMock,
 }
@@ -108,6 +113,7 @@ describe('GamePage level HUD', () => {
     startGameMock.mockReset()
     askQuestionMock.mockReset()
     makeGuessMock.mockReset()
+    requestAiHintMock.mockReset()
     restartMock.mockReset()
     clearErrorMock.mockReset()
     mockGameState.sessionId = 'session-1'
@@ -119,6 +125,8 @@ describe('GamePage level HUD', () => {
     mockGameState.errorMsg = null
     mockGameState.revealedName = null
     mockGameState.remainingQuestions = 20
+    mockGameState.hints = []
+    mockGameState.remainingHints = 2
     mockGameSession.isLoading = false
     mockGameSession.isRestoreComplete = true
     storageGetMock.mockImplementation((key: string) => {
@@ -142,6 +150,17 @@ describe('GamePage level HUD', () => {
     expect(await screen.findByText('LEVEL 7')).toBeInTheDocument()
     expect(screen.getByText('熟手')).toBeInTheDocument()
     expect(screen.getByText('胜利后解锁第8关')).toBeInTheDocument()
+    expect(screen.getByText('AI 提示（剩余 2 次）')).toBeInTheDocument()
+  })
+
+  it('shows used AI hints on the game page', async () => {
+    mockGameState.hints = ['这位人物主要活跃在唐朝。']
+    mockGameState.remainingHints = 1
+
+    render(<GamePage />)
+
+    expect(await screen.findByText('AI 提示（剩余 1 次）')).toBeInTheDocument()
+    expect(screen.getByText('提示 1：这位人物主要活跃在唐朝。')).toBeInTheDocument()
   })
 
   it('shows broader unlocked progress instead of a fake next-unlock claim when replaying an older level', async () => {

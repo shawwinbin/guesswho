@@ -5,8 +5,6 @@ import { useGameSession } from '../../hooks/useGameSession'
 import { QuestionForm } from '../../components/QuestionForm'
 import { GuessForm } from '../../components/GuessForm'
 import { AnswerBadge } from '../../components/AnswerBadge'
-import { VoiceControls } from '../../components/VoiceControls'
-import { useVoiceGame } from '../../hooks/useVoiceGame'
 import { SUGGESTED_QUESTIONS } from '../../lib/gameContent'
 import { getLevelHint, getLevelTitle, readLevelProgress } from '../../lib/levelProgress'
 import { storage } from '../../lib/storage'
@@ -23,8 +21,7 @@ const DEFAULT_SETTINGS: GameSettings = {
 
 export default function GamePage() {
   const settings = storage.get<GameSettings>('game-settings') || DEFAULT_SETTINGS
-  const { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, restart, clearError } = useGameSession(settings)
-  const voice = useVoiceGame({ onTranscript: (text) => askQuestion(text) })
+  const { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, requestAiHint, restart, clearError } = useGameSession(settings)
   const [pendingGuess, setPendingGuess] = useState<string | null>(null)
   const hasAttemptedInitialStartRef = useRef(false)
   const levelProgress = readLevelProgress()
@@ -83,18 +80,14 @@ export default function GamePage() {
   return (
     <View className="game-page mini-game-page">
       <View className="game-header">
-        <View className="game-header__menu mg-icon-button">
-          <View className="game-header__menu-line" />
-          <View className="game-header__menu-line" />
-          <View className="game-header__menu-line" />
+        <View className="game-header__back" onClick={() => Taro.redirectTo({ url: '/pages/index/index' })}>
+          <Text className="game-header__back-icon">←</Text>
         </View>
         <View className="game-header__title-wrap">
-          <Text className="game-header__title">HISTORY RIDDLES</Text>
-          <Text className="game-header__subtitle">古韵猜猜看</Text>
+          <Text className="game-header__title">第{activeLevel}关 · {levelTitle}</Text>
+          <Text className="game-header__subtitle">{levelHint}</Text>
         </View>
-        <View className="game-header__help">
-          <Text className="game-header__help-text">?</Text>
-        </View>
+        <View className="game-header__spacer" />
       </View>
 
       <View className="level-hud mg-card">
@@ -122,14 +115,8 @@ export default function GamePage() {
 
       <View className="status-bar">
         <View className="status-bar__counter">
-          <Text className="status-bar__label">ROUND</Text>
+          <Text className="status-bar__label">提问</Text>
           <Text className="status-bar__counter-text">{`${String(state.history.length).padStart(2, '0')}/${String(settings.questionLimit).padStart(2, '0')}`}</Text>
-        </View>
-        <View className="status-bar__hearts">
-          <Text className="status-bar__hearts-label">LIFE</Text>
-          <Text>♥</Text>
-          <Text>♥</Text>
-          <Text>♥</Text>
         </View>
         <View className="status-bar__restart" onClick={() => restart(activeLevel)}>
           <Text className="status-bar__restart-text">↻</Text>
@@ -148,11 +135,8 @@ export default function GamePage() {
       )}
 
       <View className="hint-panel">
-        <Text className="hint-panel__bulb">💡</Text>
         <View className="hint-panel__copy">
-          <Text className="hint-panel__tag">QUEST TIP</Text>
-          <Text className="hint">Ask questions that can only be answered with Yes or No.</Text>
-          <Text className="hint-panel__subhint">请只提问“是”或“否”可以回答的问题</Text>
+          <Text className="hint">请只提问可以用“是”或“否”回答的问题。</Text>
         </View>
       </View>
 
@@ -191,8 +175,27 @@ export default function GamePage() {
 
       <View className="input-panel mg-card">
         <View className="input-panel__header">
-          <Text className="input-panel__title">操作台</Text>
-          <Text className="input-panel__sub">提问、语音、最终猜测</Text>
+          <Text className="input-panel__title">开始提问</Text>
+          <Text className="input-panel__sub">先收集线索，确认后再提交最终答案。</Text>
+        </View>
+
+        <View className="ai-hints">
+          <View
+            className={`ai-hint-button ${state.remainingHints <= 0 || isLoading ? 'ai-hint-button--disabled' : ''}`}
+            onClick={() => {
+              if (state.remainingHints <= 0 || isLoading) return
+              requestAiHint()
+            }}
+          >
+            <Text className="ai-hint-button__text">AI 提示（剩余 {state.remainingHints} 次）</Text>
+          </View>
+          {state.hints.length > 0 && (
+            <View className="ai-hint-list">
+              {state.hints.map((hint, idx) => (
+                <Text key={idx} className="ai-hint-item">提示 {idx + 1}：{hint}</Text>
+              ))}
+            </View>
+          )}
         </View>
 
         <QuestionForm
@@ -202,17 +205,6 @@ export default function GamePage() {
           suggestions={SUGGESTED_QUESTIONS.slice(0, 3)}
           onSuggestionClick={(suggestion) => askQuestion(suggestion)}
         />
-
-        <View className="voice-panel">
-          <Text className="voice-panel__label">语音提问</Text>
-          <VoiceControls
-            onStartRecord={voice.startRecording}
-            onStopRecord={voice.stopRecording}
-            isRecording={voice.isRecording}
-            disabled={isLoading}
-            transcript={settings.voiceMode ? voice.transcript : undefined}
-          />
-        </View>
 
         <GuessForm onSubmit={handleGuessRequest} disabled={isLoading} loading={isLoading} />
       </View>

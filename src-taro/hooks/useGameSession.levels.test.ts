@@ -14,6 +14,7 @@ const {
   fetchSessionMock,
   submitGuessMock,
   submitQuestionMock,
+  requestHintMock,
   storageGetMock,
   storageRemoveMock,
   storageSetMock,
@@ -22,6 +23,7 @@ const {
   fetchSessionMock: vi.fn(),
   submitGuessMock: vi.fn(),
   submitQuestionMock: vi.fn(),
+  requestHintMock: vi.fn(),
   storageGetMock: vi.fn(),
   storageRemoveMock: vi.fn(),
   storageSetMock: vi.fn(),
@@ -32,6 +34,7 @@ vi.mock('../lib/gameApi', () => ({
   fetchSession: fetchSessionMock,
   submitGuess: submitGuessMock,
   submitQuestion: submitQuestionMock,
+  requestHint: requestHintMock,
 }))
 
 vi.mock('../lib/storage', () => ({
@@ -73,6 +76,8 @@ function createSnapshot(overrides: Partial<GameSessionSnapshot> = {}): GameSessi
     remainingQuestions: 20,
     history: [],
     guesses: [],
+    hints: [],
+    remainingHints: 2,
     ...overrides,
   }
 }
@@ -94,6 +99,7 @@ describe('useGameSession level wiring', () => {
     fetchSessionMock.mockReset()
     submitGuessMock.mockReset()
     submitQuestionMock.mockReset()
+    requestHintMock.mockReset()
     storageGetMock.mockReset()
     storageRemoveMock.mockReset()
     storageSetMock.mockReset()
@@ -303,5 +309,28 @@ describe('useGameSession level wiring', () => {
       level: 9,
     })
     expect(result.current.state.level).toBe(9)
+  })
+
+  it('requests an AI hint and updates the remaining hint count', async () => {
+    createSessionMock.mockResolvedValue(createSnapshot({ sessionId: 'session-1', level: 4 }))
+    requestHintMock.mockResolvedValue({
+      hint: '这位人物主要活跃在唐朝。',
+      hints: [{ hint: '这位人物主要活跃在唐朝。' }],
+      remainingHints: 1,
+    })
+
+    const { result } = renderHook(() => useGameSession(settings))
+
+    await act(async () => {
+      await result.current.startGame(4)
+    })
+
+    await act(async () => {
+      await result.current.requestAiHint()
+    })
+
+    expect(requestHintMock).toHaveBeenCalledWith('session-1')
+    expect(result.current.state.hints).toEqual(['这位人物主要活跃在唐朝。'])
+    expect(result.current.state.remainingHints).toBe(1)
   })
 })

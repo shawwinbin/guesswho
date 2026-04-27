@@ -25,4 +25,9 @@ export async function registerGameSessionRoutes(app: FastifyInstance, service: G
     const body = parseGuessBody(request.body)
     return service.submitGuess(params.sessionId, body.guess)
   })
+
+  app.post('/v1/game-sessions/:sessionId/hints', async request => {
+    const params = request.params as { sessionId: string }
+    return service.requestHint(params.sessionId)
+  })
 }

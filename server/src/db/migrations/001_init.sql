@@ -14,10 +14,11 @@ create table if not exists game_sessions (
 create table if not exists game_events (
   id uuid primary key,
   session_id uuid not null references game_sessions(id) on delete cascade,
-  event_type text not null check (event_type in ('question', 'guess')),
+  event_type text not null check (event_type in ('question', 'guess', 'hint')),
   question_text text,
   answer_text text check (answer_text in ('是', '不是')),
   guess_text text,
+  hint_text text,
   is_correct boolean,
   created_at timestamptz not null default now()
 );

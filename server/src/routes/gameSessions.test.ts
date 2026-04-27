@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildApp } from '../app.js'
 import type { GameSessionService } from '../services/gameSessionService.js'
 
-function createServiceStub(): Pick<GameSessionService, 'createSession' | 'getSessionSnapshot' | 'submitQuestion' | 'submitGuess'> {
+function createServiceStub(): Pick<GameSessionService, 'createSession' | 'getSessionSnapshot' | 'submitQuestion' | 'submitGuess' | 'requestHint'> {
   return {
     createSession: vi.fn(async () => ({
       sessionId: 'session-1',
@@ -13,6 +13,8 @@ function createServiceStub(): Pick<GameSessionService, 'createSession' | 'getSes
       remainingQuestions: 20,
       history: [],
       guesses: [],
+      hints: [],
+      remainingHints: 2,
     })),
     getSessionSnapshot: vi.fn(async () => ({
       sessionId: 'session-1',
@@ -23,6 +25,8 @@ function createServiceStub(): Pick<GameSessionService, 'createSession' | 'getSes
       remainingQuestions: 20,
       history: [],
       guesses: [],
+      hints: [],
+      remainingHints: 2,
     })),
     submitQuestion: vi.fn(async () => ({
       answer: '是' as const,
@@ -35,6 +39,11 @@ function createServiceStub(): Pick<GameSessionService, 'createSession' | 'getSes
       isCorrect: false,
       revealedName: '李白',
       status: 'ended' as const,
+    })),
+    requestHint: vi.fn(async () => ({
+      hint: '这位人物主要活跃在唐朝。',
+      hints: [{ hint: '这位人物主要活跃在唐朝。' }],
+      remainingHints: 1,
     })),
   }
 }
@@ -148,6 +157,28 @@ describe('game session routes', () => {
 
     expect(response.statusCode).toBe(400)
     expect(service.createSession).not.toHaveBeenCalled()
+
+    await app.close()
+  })
+
+  it('returns an AI hint through the http api', async () => {
+    const service = createServiceStub()
+    const app = await buildApp({
+      corsOrigin: 'http://localhost:5173',
+      gameSessionService: service as GameSessionService,
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/game-sessions/session-1/hints',
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({
+      hint: '这位人物主要活跃在唐朝。',
+      remainingHints: 1,
+    })
+    expect(service.requestHint).toHaveBeenCalledWith('session-1')
 
     await app.close()
   })

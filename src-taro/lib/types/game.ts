@@ -20,6 +20,10 @@ export interface GuessRecord {
   isCorrect: boolean
 }
 
+export interface HintRecord {
+  hint: string
+}
+
 export interface LevelProgress {
   currentLevel: number
   highestUnlockedLevel: number
@@ -37,6 +41,8 @@ export interface GameSessionSnapshot {
   remainingQuestions: number | null
   history: QuestionAnswer[]
   guesses: GuessRecord[]
+  hints?: HintRecord[]
+  remainingHints?: number
   revealedName?: string
 }
 
@@ -59,4 +65,10 @@ export interface GuessResponse {
   isCorrect: boolean
   revealedName: string
   status: 'ended'
+}
+
+export interface HintResponse {
+  hint: string
+  hints: HintRecord[]
+  remainingHints: number
 }

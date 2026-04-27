@@ -1,5 +1,5 @@
 import Taro from '@tarojs/taro'
-import { CreateSessionRequest, GameSessionSnapshot, GuessResponse, QuestionResponse } from './types'
+import { CreateSessionRequest, GameSessionSnapshot, GuessResponse, HintResponse, QuestionResponse } from './types'
 
 // H5 is deployed behind the same-origin reverse proxy, so relative paths are stable here.
 const API_BASE_URL = ''
@@ -47,6 +47,12 @@ export function submitGuess(sessionId: string, guess: string): Promise<GuessResp
   return taroRequest(`/v1/game-sessions/${sessionId}/guesses`, {
     method: 'POST',
     data: { guess }
+  })
+}
+
+export function requestHint(sessionId: string): Promise<HintResponse> {
+  return taroRequest(`/v1/game-sessions/${sessionId}/hints`, {
+    method: 'POST'
   })
 }
 
