@@ -68,8 +68,11 @@ vi.mock('@tarojs/components', () => ({
     children,
     scrollY: _scrollY,
     scrollWithAnimation: _scrollWithAnimation,
+    scrollIntoView,
     ...props
-  }: { children?: ReactNode } & Record<string, unknown>) => <div {...props}>{children}</div>,
+  }: { children?: ReactNode; scrollIntoView?: string } & Record<string, unknown>) => (
+    <div {...props} data-scroll-into-view={scrollIntoView}>{children}</div>
+  ),
 }))
 
 vi.mock('../../lib/storage', () => ({
@@ -232,6 +235,33 @@ describe('GamePage level HUD', () => {
 
     expect(await screen.findByText('AI 提示（剩余 1 次）')).toBeInTheDocument()
     expect(screen.getByText('提示 1：这位人物主要活跃在唐朝。')).toBeInTheDocument()
+  })
+
+  it('renders each question and AI answer as separate chat messages', async () => {
+    mockGameState.history = [
+      { question: '他是唐朝以前的吗？', answer: '是' },
+      { question: '他是诗人吗？', answer: '不是' },
+    ]
+
+    render(<GamePage />)
+
+    expect(await screen.findByText('他是唐朝以前的吗？')).toBeInTheDocument()
+    expect(screen.getByText('Q1')).toBeInTheDocument()
+    expect(screen.getAllByText('AI')).toHaveLength(2)
+    expect(screen.getByText('是')).toBeInTheDocument()
+    expect(screen.getByText('不是')).toBeInTheDocument()
+  })
+
+  it('shows a pending user message and AI thinking state while waiting for an answer', async () => {
+    askQuestionMock.mockImplementationOnce(() => new Promise(() => {}))
+
+    render(<GamePage />)
+
+    fireEvent.click(await screen.findByText('AskCategory'))
+
+    expect(await screen.findByText('他是诗人吗？')).toBeInTheDocument()
+    expect(screen.getByText('AI 思考中…')).toBeInTheDocument()
+    expect(document.querySelector('.history-panel')).toHaveAttribute('data-scroll-into-view', 'history-pending-bottom')
   })
 
   it('shows broader unlocked progress instead of a fake next-unlock claim when replaying an older level', async () => {
