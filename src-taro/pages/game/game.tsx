@@ -1,13 +1,13 @@
 import { View, Text, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useGameSession } from '../../hooks/useGameSession'
 import { QuestionForm } from '../../components/QuestionForm'
-import { GuessForm } from '../../components/GuessForm'
 import { AnswerBadge } from '../../components/AnswerBadge'
 import { SUGGESTED_QUESTIONS } from '../../lib/gameContent'
 import { getLevelTitle, readLevelProgress } from '../../lib/levelProgress'
 import { normalizeGameSettings } from '../../lib/gameRules'
+import { extractGuessFromQuestion } from '../../lib/questionGuess'
 import { storage } from '../../lib/storage'
 import type { GameSettings } from '../../lib/types'
 import './game.scss'
@@ -15,7 +15,6 @@ import './game.scss'
 export default function GamePage() {
   const settings = normalizeGameSettings(storage.get<GameSettings>('game-settings'))
   const { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, requestAiHint, restart, clearError } = useGameSession(settings)
-  const [pendingGuess, setPendingGuess] = useState<string | null>(null)
   const hasAttemptedInitialStartRef = useRef(false)
   const levelProgress = readLevelProgress()
   const activeLevel = state.level ?? levelProgress.currentLevel
@@ -38,7 +37,6 @@ export default function GamePage() {
 
   useEffect(() => {
     if (state.phase === 'ended' && state.revealedName) {
-      setPendingGuess(null)
       Taro.navigateTo({
         url: `/pages/result/result?winner=${state.isWinner}&name=${state.revealedName}&count=${state.history.length}&level=${state.level}`
       })
@@ -56,15 +54,15 @@ export default function GamePage() {
     )
   }
 
-  const handleGuessRequest = (guess: string) => {
-    setPendingGuess(guess)
-  }
+  const handleQuestionSubmit = async (question: string) => {
+    const guess = extractGuessFromQuestion(question)
 
-  const handleConfirmGuess = async () => {
-    if (!pendingGuess) return
-    const guess = pendingGuess
-    setPendingGuess(null)
-    await makeGuess(guess)
+    if (guess) {
+      await makeGuess(guess)
+      return
+    }
+
+    await askQuestion(question)
   }
 
   return (
@@ -143,39 +141,13 @@ export default function GamePage() {
         </View>
 
         <QuestionForm
-          onSubmit={askQuestion}
+          onSubmit={handleQuestionSubmit}
           disabled={isLoading || (state.remainingQuestions !== null && state.remainingQuestions <= 0)}
           loading={isLoading}
           suggestions={SUGGESTED_QUESTIONS.slice(0, 3)}
-          onSuggestionClick={(suggestion) => askQuestion(suggestion)}
+          onSuggestionClick={handleQuestionSubmit}
         />
-
-        <GuessForm onSubmit={handleGuessRequest} disabled={isLoading} loading={isLoading} />
       </View>
-
-      {pendingGuess && (
-        <View className="guess-modal">
-          <View className="guess-modal__scrim" onClick={() => setPendingGuess(null)} />
-          <View className="guess-modal__card mg-card">
-            <View className="guess-modal__seal">印</View>
-            <Text className="guess-modal__title">一锤定音</Text>
-            <Text className="guess-modal__name-label">你猜的是：</Text>
-            <View className="guess-modal__name-pill">
-              <Text className="guess-modal__name">{pendingGuess}</Text>
-            </View>
-            <Text className="guess-modal__warning">提交后本局将结束，不可撤回哦</Text>
-
-            <View className="guess-modal__actions">
-              <View className="guess-modal__cancel mg-secondary-button" onClick={() => setPendingGuess(null)}>
-                <Text className="guess-modal__cancel-text">再想想</Text>
-              </View>
-              <View className="guess-modal__confirm mg-primary-button" onClick={handleConfirmGuess}>
-                <Text className="guess-modal__confirm-text">确认提交</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
     </View>
   )
 }

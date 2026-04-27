@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LEVEL_PROGRESS_KEY } from '../../lib/levelProgress'
@@ -89,11 +89,13 @@ vi.mock('../../hooks/useGameSession', () => ({
 }))
 
 vi.mock('../../components/QuestionForm', () => ({
-  QuestionForm: () => <div>QuestionForm</div>,
-}))
-
-vi.mock('../../components/GuessForm', () => ({
-  GuessForm: () => <div>GuessForm</div>,
+  QuestionForm: ({ onSubmit }: { onSubmit: (question: string) => void }) => (
+    <div>
+      <button onClick={() => onSubmit('他是李白吗？')}>AskGuess</button>
+      <button onClick={() => onSubmit('他是诗人吗？')}>AskCategory</button>
+      <div>QuestionForm</div>
+    </div>
+  ),
 }))
 
 vi.mock('../../components/AnswerBadge', () => ({
@@ -157,6 +159,26 @@ describe('GamePage level HUD', () => {
     expect(screen.queryByText('请只提问可以用“是”或“否”回答的问题。')).not.toBeInTheDocument()
     expect(screen.queryByText('问答卷轴')).not.toBeInTheDocument()
     expect(screen.queryByText('开始提问')).not.toBeInTheDocument()
+    expect(screen.queryByText('GuessForm')).not.toBeInTheDocument()
+    expect(screen.queryByText('直接猜答案')).not.toBeInTheDocument()
+  })
+
+  it('routes person-guess questions through makeGuess instead of normal question answering', async () => {
+    render(<GamePage />)
+
+    fireEvent.click(await screen.findByText('AskGuess'))
+
+    expect(makeGuessMock).toHaveBeenCalledWith('李白')
+    expect(askQuestionMock).not.toHaveBeenCalled()
+  })
+
+  it('keeps category questions as normal yes-no questions', async () => {
+    render(<GamePage />)
+
+    fireEvent.click(await screen.findByText('AskCategory'))
+
+    expect(askQuestionMock).toHaveBeenCalledWith('他是诗人吗？')
+    expect(makeGuessMock).not.toHaveBeenCalled()
   })
 
   it('shows used AI hints on the game page', async () => {

@@ -37,7 +37,7 @@ export function QuestionForm({ onSubmit, disabled = false, loading = false, sugg
         <Input
           className="question-input"
           value={value}
-          placeholder="例如：他是皇帝吗？"
+          placeholder="输入问题，也可问：他是李白吗？"
           disabled={disabled || loading}
           confirmType="send"
           onInput={(e) => setValue(e.detail.value)}
