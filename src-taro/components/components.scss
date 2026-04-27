@@ -11,6 +11,28 @@
   transform: rotate(6deg);
 }
 
+.loading-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.loading-spinner__icon {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(62, 39, 35, 0.18);
+  border-top-color: var(--mg-red);
+  border-radius: 999px;
+  animation: spin 0.8s linear infinite;
+  box-sizing: border-box;
+}
+
+.loading-text {
+  color: var(--mg-ink-soft);
+  font-size: 20px;
+  font-weight: 800;
+}
+
 .answer-badge.yes {
   background: #fcd400;
   color: #544600;
@@ -212,4 +234,8 @@
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

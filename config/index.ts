@@ -1,4 +1,7 @@
 // config/index.ts
+const H5_MAX_ENTRYPOINT_SIZE = 300 * 1024
+const H5_MAX_ASSET_SIZE = 220 * 1024
+
 const config = {
   projectName: 'history-figure-guess',
   date: '2026-4-20',
@@ -30,6 +33,11 @@ const config = {
     publicPath: '/',
     staticDirectory: 'static',
     prebundle: { enable: false },
+    webpackChain(chain) {
+      chain.performance
+        .maxEntrypointSize(H5_MAX_ENTRYPOINT_SIZE)
+        .maxAssetSize(H5_MAX_ASSET_SIZE)
+    },
     postcss: {
       autoprefixer: {
         enable: true,

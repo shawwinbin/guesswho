@@ -1,5 +1,4 @@
 import { View, Text } from '@tarojs/components'
-import { Loading } from '@nutui/nutui-react-taro'
 import './components.scss'
 
 interface LoadingSpinnerProps {
@@ -9,7 +8,7 @@ interface LoadingSpinnerProps {
 export function LoadingSpinner({ text = '加载中...' }: LoadingSpinnerProps) {
   return (
     <View className="loading-spinner">
-      <Loading />
+      <View className="loading-spinner__icon" />
       <Text className="loading-text">{text}</Text>
     </View>
   )

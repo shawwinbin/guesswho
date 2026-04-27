@@ -1,5 +1,4 @@
 import { View, Text } from '@tarojs/components'
-import { Dialog, Toast } from '@nutui/nutui-react-taro'
 import Taro from '@tarojs/taro'
 import { useState, useEffect } from 'react'
 import { DEFAULT_GAME_SETTINGS, normalizeGameSettings } from '../../lib/gameRules'
@@ -32,21 +31,24 @@ export default function SettingsPage() {
   const clearSessionOnly = () => {
     storage.remove(SESSION_STORAGE_KEY)
     storage.remove(SESSION_SAVED_AT_KEY)
-    Toast.show('当前对局缓存已清除')
+    Taro.showToast({ title: '当前对局缓存已清除', icon: 'none' })
   }
 
   const handleClearData = () => {
-    Dialog.confirm({
+    Taro.showModal({
       title: '清除数据',
       content: '确定要清除设置和关卡进度吗？',
-      onConfirm: () => {
+      confirmText: '清除',
+      success: result => {
+        if (!result.confirm) return
+
         storage.remove(SETTINGS_STORAGE_KEY)
         storage.remove(WECHAT_OPENID_STORAGE_KEY)
         storage.remove(WECHAT_USERINFO_STORAGE_KEY)
         clearLevelProgress()
         storage.set(RESET_DATA_AT_KEY, Date.now())
         setSettings(DEFAULT_GAME_SETTINGS)
-        Toast.show('数据已清除')
+        Taro.showToast({ title: '数据已清除', icon: 'none' })
       }
     })
   }

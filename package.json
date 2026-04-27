@@ -31,7 +31,6 @@
     "@babel/preset-react": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
     "@eslint/js": "^9.22.0",
-    "@nutui/nutui-react-taro": "^3.0.19-cpp.26-beta.5",
     "@playwright/test": "^1.58.2",
     "@tarojs/cli": "^4.2.0",
     "@tarojs/components": "^4.2.0",

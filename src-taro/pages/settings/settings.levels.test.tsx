@@ -5,33 +5,36 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LEVEL_PROGRESS_KEY } from '../../lib/levelProgress'
 
-type DialogOptions = {
+type ModalOptions = {
   title: string
   content: string
-  onConfirm?: () => void
+  confirmText?: string
+  success?: (result: { confirm: boolean }) => void
 }
 
 const RESET_DATA_AT_KEY = 'history-figure-guess-reset-data-at'
 
 const {
-  dialogConfirmMock,
   navigateBackMock,
+  showModalMock,
+  showToastMock,
   storageGetMock,
   storageRemoveMock,
   storageSetMock,
-  toastShowMock,
 } = vi.hoisted(() => ({
-  dialogConfirmMock: vi.fn(),
   navigateBackMock: vi.fn(),
+  showModalMock: vi.fn(),
+  showToastMock: vi.fn(),
   storageGetMock: vi.fn(),
   storageRemoveMock: vi.fn(),
   storageSetMock: vi.fn(),
-  toastShowMock: vi.fn(),
 }))
 
 vi.mock('@tarojs/taro', () => ({
   default: {
     navigateBack: navigateBackMock,
+    showModal: showModalMock,
+    showToast: showToastMock,
     login: vi.fn(),
     getUserInfo: vi.fn(),
   },
@@ -41,15 +44,6 @@ vi.mock('@tarojs/components', () => ({
   View: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => <div {...props}>{children}</div>,
   Text: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => <span {...props}>{children}</span>,
   Image: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => <img {...props}>{children}</img>,
-}))
-
-vi.mock('@nutui/nutui-react-taro', () => ({
-  Dialog: {
-    confirm: dialogConfirmMock,
-  },
-  Toast: {
-    show: toastShowMock,
-  },
 }))
 
 vi.mock('../../lib/storage', () => ({
@@ -70,15 +64,15 @@ import SettingsPage from './settings'
 
 describe('SettingsPage level reset flows', () => {
   beforeEach(() => {
-    dialogConfirmMock.mockReset()
     navigateBackMock.mockReset()
+    showModalMock.mockReset()
+    showToastMock.mockReset()
     storageGetMock.mockReset()
     storageRemoveMock.mockReset()
     storageSetMock.mockReset()
-    toastShowMock.mockReset()
     storageGetMock.mockReturnValue(null)
-    dialogConfirmMock.mockImplementation(({ onConfirm }: DialogOptions) => {
-      onConfirm?.()
+    showModalMock.mockImplementation(({ success }: ModalOptions) => {
+      success?.({ confirm: true })
     })
   })
 
@@ -87,10 +81,11 @@ describe('SettingsPage level reset flows', () => {
 
     fireEvent.click(screen.getByText('重置数据（设置/关卡）'))
 
-    expect(dialogConfirmMock).toHaveBeenCalledWith({
+    expect(showModalMock).toHaveBeenCalledWith({
       title: '清除数据',
       content: '确定要清除设置和关卡进度吗？',
-      onConfirm: expect.any(Function),
+      confirmText: '清除',
+      success: expect.any(Function),
     })
     expect(storageRemoveMock).toHaveBeenCalledWith('game-settings')
     expect(storageRemoveMock).toHaveBeenCalledWith('wechat-openid')
@@ -98,7 +93,7 @@ describe('SettingsPage level reset flows', () => {
     expect(storageRemoveMock).toHaveBeenCalledWith(LEVEL_PROGRESS_KEY)
     expect(storageRemoveMock).not.toHaveBeenCalledWith('history-figure-guess-session')
     expect(storageSetMock).toHaveBeenCalledWith(RESET_DATA_AT_KEY, expect.any(Number))
-    expect(toastShowMock).toHaveBeenCalledWith('数据已清除')
+    expect(showToastMock).toHaveBeenCalledWith({ title: '数据已清除', icon: 'none' })
   })
 
   it('shows the fixed 20-question rule and removes the old 30-question entry', () => {
