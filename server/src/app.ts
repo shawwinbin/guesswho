@@ -17,6 +17,12 @@ interface BuildAppOptions {
   gameSessionService?: GameSessionService
 }
 
+interface HttpParseError {
+  statusCode: number
+  code?: string
+  message: string
+}
+
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify()
 
@@ -33,6 +39,15 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       return reply.status(error.statusCode).send({
         error: {
           code: error.code,
+          message: error.message,
+        },
+      })
+    }
+
+    if (isHttpParseError(error)) {
+      return reply.status(error.statusCode).send({
+        error: {
+          code: error.code || 'bad_request',
           message: error.message,
         },
       })
@@ -70,4 +85,14 @@ function createDefaultGameSessionService(app: FastifyInstance): GameSessionServi
       model: env.llmModel,
     }),
   })
+}
+
+function isHttpParseError(error: unknown): error is HttpParseError {
+  if (!error || typeof error !== 'object') return false
+
+  const candidate = error as Partial<HttpParseError>
+  return typeof candidate.statusCode === 'number'
+    && candidate.statusCode >= 400
+    && candidate.statusCode < 500
+    && typeof candidate.message === 'string'
 }

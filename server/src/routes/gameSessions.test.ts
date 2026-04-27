@@ -211,4 +211,27 @@ describe('game session routes', () => {
 
     await app.close()
   })
+
+  it('returns a client error instead of internal_error for empty json post bodies', async () => {
+    const service = createServiceStub()
+    const app = await buildApp({
+      corsOrigin: 'http://localhost:5173',
+      gameSessionService: service as GameSessionService,
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/game-sessions/session-1/hints',
+      headers: {
+        'content-type': 'application/json',
+      },
+      payload: '',
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json().error.code).not.toBe('internal_error')
+    expect(service.requestHint).not.toHaveBeenCalled()
+
+    await app.close()
+  })
 })

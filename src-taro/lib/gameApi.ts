@@ -8,13 +8,17 @@ async function taroRequest<T>(path: string, options: {
   method?: 'GET' | 'POST'
   data?: unknown
 }): Promise<T> {
+  const header = options.data === undefined
+    ? undefined
+    : {
+        'Content-Type': 'application/json'
+      }
+
   const res = await Taro.request({
     url: `${API_BASE_URL}${path}`,
     method: options.method || 'GET',
     data: options.data,
-    header: {
-      'Content-Type': 'application/json'
-    }
+    header
   })
 
   if (res.statusCode >= 400) {
