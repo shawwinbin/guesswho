@@ -67,6 +67,16 @@ function parseLevel(value: string | undefined, fallbackLevel: number): number {
   return Number.isInteger(parsed) && parsed >= 1 ? parsed : fallbackLevel
 }
 
+function decodeRouteParam(value: string | undefined): string | undefined {
+  if (!value) return undefined
+
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
 function buildResultProgress(storedProgress: LevelProgress, playedLevel: number, result: 'win' | 'lose'): LevelProgress {
   const highestUnlockedLevel = Math.max(storedProgress.highestUnlockedLevel, playedLevel)
   const baseProgress: LevelProgress = {
@@ -130,7 +140,7 @@ function resolveResultProgress(storedProgress: LevelProgress, playedLevel: numbe
 export default function ResultPage() {
   const router = useRouter()
   const winnerParam = router.params.winner
-  const nameParam = router.params.name
+  const nameParam = decodeRouteParam(router.params.name)
   const countParam = router.params.count
   const levelParam = router.params.level
   const isWinner = winnerParam === 'true'

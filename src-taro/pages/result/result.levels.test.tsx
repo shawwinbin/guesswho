@@ -150,6 +150,18 @@ describe('ResultPage level progression', () => {
     }))
   })
 
+  it('decodes the revealed answer from route params after a loss', () => {
+    renderWithParams(
+      { winner: 'false', name: encodeURIComponent('李白'), count: '20', level: '1' },
+      {
+        storedProgress: createProgress(),
+      },
+    )
+
+    expect(screen.getByText('正确答案是：李白')).toBeInTheDocument()
+    expect(screen.queryByText(`正确答案是：${encodeURIComponent('李白')}`)).not.toBeInTheDocument()
+  })
+
   it('does not apply progression twice on the same logical result under StrictMode', () => {
     renderWithParams(
       { winner: 'true', name: '李白', count: '6', level: '4' },
