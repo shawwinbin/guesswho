@@ -44,6 +44,41 @@ describe('localAnswerEngine', () => {
     expect(answerQuestionLocally(guanHanqing, '他是李白吗')).toBe('不是')
   })
 
+  it('answers specific ruler period questions before broad dynasty matching', () => {
+    const weiQing: SecretFigure = {
+      name: '卫青',
+      aliases: ['长平侯'],
+      era: '汉朝',
+    }
+
+    expect(answerQuestionLocally(weiQing, '他是汉武帝时期的吗')).toBe('是')
+    expect(answerQuestionLocally(weiQing, '他是刘邦在位时期的吗')).toBe('不是')
+    expect(answerQuestionLocally(weiQing, '他是东汉的吗')).toBe('不是')
+    expect(answerQuestionLocally(weiQing, '他是西汉的吗')).toBe('是')
+  })
+
+  it('distinguishes eastern and western Han figures by active years', () => {
+    const banGu: SecretFigure = {
+      name: '班固',
+      aliases: ['兰台令史'],
+      era: '汉朝',
+    }
+
+    expect(answerQuestionLocally(banGu, '他是东汉的吗')).toBe('是')
+    expect(answerQuestionLocally(banGu, '他是西汉的吗')).toBe('不是')
+    expect(answerQuestionLocally(banGu, '他是汉武帝时期的吗')).toBe('不是')
+  })
+
+  it('still answers broad Han dynasty questions for Han figures', () => {
+    const weiQing: SecretFigure = {
+      name: '卫青',
+      aliases: ['长平侯'],
+      era: '汉朝',
+    }
+
+    expect(answerQuestionLocally(weiQing, '他是汉朝的吗')).toBe('是')
+  })
+
   it('judges guesses locally using names and aliases', () => {
     expect(judgeGuessLocally(qinShiHuang, '秦始皇')).toBe(true)
     expect(judgeGuessLocally(qinShiHuang, '嬴政')).toBe(true)

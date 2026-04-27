@@ -25,7 +25,10 @@ export function answerQuestionByRules(secret: SecretFigure, question: string): Y
   const identityMatch = checkIdentityConfirmation(q, secret)
   if (identityMatch !== null) return identityMatch
 
-  const eraMatch = checkEraMatch(q, figure.era)
+  const specificPeriodMatch = checkSpecificPeriodMatch(q, figure)
+  if (specificPeriodMatch !== null) return specificPeriodMatch
+
+  const eraMatch = checkEraMatch(q, figure)
   if (eraMatch !== null) return eraMatch
 
   const regionMatch = checkRegionMatch(q, figure)
@@ -168,7 +171,11 @@ function levenshteinDistance(left: string, right: string): number {
   return distances[rows.length][columns.length]
 }
 
-function checkEraMatch(q: string, era: string): YesNoAnswer | null {
+function checkEraMatch(q: string, figure: HistoricalFigure): YesNoAnswer | null {
+  const era = figure.era
+  const hanSubEraMatch = checkHanSubEraMatch(q, figure)
+  if (hanSubEraMatch !== null) return hanSubEraMatch
+
   const eraPatterns: Record<string, string[]> = {
     上古: ['上古', '远古', '神话', '传说'],
     商周: ['商周', '商朝', '周朝', '商代', '周代'],
@@ -176,7 +183,7 @@ function checkEraMatch(q: string, era: string): YesNoAnswer | null {
     战国: ['战国', '战国时期', '战国时代'],
     秦朝: ['秦朝', '秦代', '秦时'],
     秦末汉初: ['秦末汉初', '秦汉之交'],
-    汉朝: ['汉朝', '汉代', '西汉', '东汉', '汉时'],
+    汉朝: ['汉朝', '汉代', '汉时'],
     三国: ['三国', '三国时期', '三国时代'],
     南北朝: ['南北朝', '魏晋南北朝', '北魏'],
     隋朝: ['隋朝', '隋代', '隋时'],
@@ -210,6 +217,76 @@ function checkEraMatch(q: string, era: string): YesNoAnswer | null {
   }
 
   return null
+}
+
+function checkSpecificPeriodMatch(q: string, figure: HistoricalFigure): YesNoAnswer | null {
+  const period = findNamedHistoricalPeriod(q)
+  if (!period) return null
+
+  if (figure.keywords.some(keyword => q.includes(normalizeText(keyword)))) {
+    return '是'
+  }
+
+  return overlapsSpecificPeriod(figure, period.startYear, period.endYear) ? '是' : '不是'
+}
+
+const NAMED_HISTORICAL_PERIODS: Array<{ names: string[]; startYear: number; endYear: number }> = [
+  { names: ['刘邦', '汉高祖', '高祖'], startYear: -202, endYear: -195 },
+  { names: ['汉文帝', '刘恒'], startYear: -180, endYear: -157 },
+  { names: ['汉景帝', '刘启'], startYear: -157, endYear: -141 },
+  { names: ['汉武帝', '刘彻'], startYear: -141, endYear: -87 },
+  { names: ['汉宣帝', '刘询'], startYear: -74, endYear: -49 },
+  { names: ['光武帝', '刘秀', '汉光武帝'], startYear: 25, endYear: 57 },
+]
+
+function findNamedHistoricalPeriod(q: string): { startYear: number; endYear: number } | null {
+  const isPeriodQuestion = ['时期', '时代', '年间', '在位', '当政', '统治'].some(token => q.includes(token))
+  if (!isPeriodQuestion) return null
+
+  return NAMED_HISTORICAL_PERIODS.find(period => period.names.some(name => q.includes(normalizeText(name)))) ?? null
+}
+
+function checkHanSubEraMatch(q: string, figure: HistoricalFigure): YesNoAnswer | null {
+  if (q.includes('西汉') || q.includes('前汉')) {
+    return answerByKnownYearsOrHanKeyword(figure, -202, 8, ['西汉', '前汉'])
+  }
+
+  if (q.includes('东汉') || q.includes('后汉')) {
+    return answerByKnownYearsOrHanKeyword(figure, 25, 220, ['东汉', '后汉'])
+  }
+
+  return null
+}
+
+function answerByKnownYearsOrHanKeyword(figure: HistoricalFigure, startYear: number, endYear: number, keywords: string[]): YesNoAnswer {
+  if (figure.bornYear !== undefined || figure.diedYear !== undefined) {
+    return overlapsFigureYears(figure, startYear, endYear) ? '是' : '不是'
+  }
+
+  return figure.keywords.some(keyword => keywords.includes(normalizeText(keyword))) ? '是' : '不是'
+}
+
+function overlapsFigureYears(figure: HistoricalFigure, startYear: number, endYear: number): boolean {
+  const bornYear = figure.bornYear ?? Number.NEGATIVE_INFINITY
+  const diedYear = figure.diedYear ?? Number.POSITIVE_INFINITY
+
+  return bornYear <= endYear && diedYear >= startYear
+}
+
+function overlapsSpecificPeriod(figure: HistoricalFigure, startYear: number, endYear: number): boolean {
+  if (figure.bornYear !== undefined && figure.diedYear !== undefined) {
+    return overlapsFigureYears(figure, startYear, endYear)
+  }
+
+  if (figure.bornYear !== undefined) {
+    return figure.bornYear >= startYear && figure.bornYear <= endYear
+  }
+
+  if (figure.diedYear !== undefined) {
+    return figure.diedYear >= startYear && figure.diedYear <= endYear
+  }
+
+  return false
 }
 
 const ERA_ORDER: Record<string, number> = {
