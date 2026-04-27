@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LEVEL_PROGRESS_KEY } from '../../lib/levelProgress'
@@ -163,13 +163,24 @@ describe('GamePage level HUD', () => {
     expect(screen.queryByText('直接猜答案')).not.toBeInTheDocument()
   })
 
-  it('routes person-guess questions through makeGuess instead of normal question answering', async () => {
+  it('keeps a wrong person-guess question in normal question flow', async () => {
+    askQuestionMock.mockResolvedValueOnce({ answer: '不是' })
     render(<GamePage />)
 
     fireEvent.click(await screen.findByText('AskGuess'))
 
-    expect(makeGuessMock).toHaveBeenCalledWith('李白')
-    expect(askQuestionMock).not.toHaveBeenCalled()
+    expect(askQuestionMock).toHaveBeenCalledWith('他是李白吗？')
+    expect(makeGuessMock).not.toHaveBeenCalled()
+  })
+
+  it('marks a person-guess question as a final guess only when the answer is yes', async () => {
+    askQuestionMock.mockResolvedValueOnce({ answer: '是' })
+    render(<GamePage />)
+
+    fireEvent.click(await screen.findByText('AskGuess'))
+
+    expect(askQuestionMock).toHaveBeenCalledWith('他是李白吗？')
+    await waitFor(() => expect(makeGuessMock).toHaveBeenCalledWith('李白'))
   })
 
   it('keeps category questions as normal yes-no questions', async () => {

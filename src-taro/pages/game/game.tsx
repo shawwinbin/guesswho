@@ -58,7 +58,10 @@ export default function GamePage() {
     const guess = extractGuessFromQuestion(question)
 
     if (guess) {
-      await makeGuess(guess)
+      const response = await askQuestion(question)
+      if (response?.answer === '是' && response.status !== 'ended') {
+        await makeGuess(guess)
+      }
       return
     }
 

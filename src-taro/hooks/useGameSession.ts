@@ -135,7 +135,7 @@ export function useGameSession(settings: GameSettings) {
   }, [applySnapshot, clearPersistedSession, resolveLevel, settings])
 
   const askQuestion = useCallback(async (question: string) => {
-    if (!state.sessionId || state.phase !== 'playing') return
+    if (!state.sessionId || state.phase !== 'playing') return null
     setIsLoading(true)
     setState(prev => ({ ...prev, errorMsg: null }))
     try {
@@ -150,13 +150,15 @@ export function useGameSession(settings: GameSettings) {
       if (res.status === 'ended') {
         clearPersistedSession()
       }
+      return res
     } catch (err) {
       const msg = err instanceof Error ? err.message : '提问失败'
       setState(prev => ({ ...prev, errorMsg: msg }))
+      return null
     } finally {
       setIsLoading(false)
     }
-  }, [state.sessionId, state.phase])
+  }, [clearPersistedSession, state.sessionId, state.phase])
 
   const makeGuess = useCallback(async (guess: string) => {
     if (!state.sessionId || state.phase !== 'playing') return
