@@ -1,8 +1,15 @@
+import { additionalChineseFigures } from '../data/additionalChineseFigures.js'
 import { additionalFigures } from '../data/additionalFigures.js'
 import { figures as baseFigures } from '../data/figures.js'
 import type { FigureScope, HistoricalFigure } from '../types/figure.js'
 
-export const figures: HistoricalFigure[] = [...baseFigures, ...additionalFigures]
+const ACTIVE_FOREIGN_FIGURE_LIMIT = 50
+
+export const figures: HistoricalFigure[] = [
+  ...baseFigures,
+  ...additionalChineseFigures,
+  ...additionalFigures.slice(0, ACTIVE_FOREIGN_FIGURE_LIMIT),
+]
 
 export function filterFiguresByScope(scope: FigureScope): HistoricalFigure[] {
   switch (scope) {

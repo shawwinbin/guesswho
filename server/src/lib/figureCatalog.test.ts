@@ -26,14 +26,19 @@ describe('figureCatalog', () => {
     expect(tangSongFigures.every(figure => ['唐朝', '宋朝'].includes(figure.era))).toBe(true)
   })
 
-  it('keeps the game catalog large and internationally diverse', () => {
+  it('keeps the game catalog large with roughly 80 percent Chinese figures', () => {
     const nonChineseFigures = figures.filter(figure => !figure.isChinese)
+    const chineseFigures = figures.filter(figure => figure.isChinese)
     const ids = new Set(figures.map(figure => figure.id))
+    const chineseRatio = chineseFigures.length / figures.length
 
     expect(figures.length).toBeGreaterThanOrEqual(200)
     expect(figures.length).toBeLessThanOrEqual(300)
-    expect(nonChineseFigures.length).toBeGreaterThanOrEqual(80)
+    expect(chineseRatio).toBeGreaterThanOrEqual(0.75)
+    expect(chineseRatio).toBeLessThanOrEqual(0.85)
+    expect(nonChineseFigures.length).toBeGreaterThanOrEqual(40)
     expect(nonChineseFigures.every(figure => figure.region !== '中国')).toBe(true)
+    expect(chineseFigures.every(figure => figure.region === '中国')).toBe(true)
     expect(ids.size).toBe(figures.length)
   })
 
