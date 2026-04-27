@@ -184,14 +184,14 @@ describe('GamePage level HUD', () => {
     await waitFor(() => expect(makeGuessMock).toHaveBeenCalledWith('李白'))
   })
 
-  it('keeps a normal named question playable even when the answer is yes', async () => {
+  it('marks a normal named question as a final guess only when the answer is yes', async () => {
     askQuestionMock.mockResolvedValueOnce({ answer: '是' })
     render(<GamePage />)
 
     fireEvent.click(await screen.findByText('AskNamedQuestion'))
 
     expect(askQuestionMock).toHaveBeenCalledWith('他是李白吗？')
-    expect(makeGuessMock).not.toHaveBeenCalled()
+    await waitFor(() => expect(makeGuessMock).toHaveBeenCalledWith('李白'))
   })
 
   it('keeps category questions as normal yes-no questions', async () => {
