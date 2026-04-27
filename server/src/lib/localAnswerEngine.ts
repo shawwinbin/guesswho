@@ -22,6 +22,8 @@ export function answerQuestionByRules(secret: SecretFigure, question: string): Y
   }
 
   const q = normalizeQuestion(question)
+  const identityMatch = checkIdentityConfirmation(q, secret)
+  if (identityMatch !== null) return identityMatch
 
   const eraMatch = checkEraMatch(q, figure.era)
   if (eraMatch !== null) return eraMatch
@@ -84,6 +86,35 @@ function normalizeText(input: string): string {
 
 function normalizeQuestion(question: string): string {
   return question.toLowerCase().replace(/\s+/g, '').replace(/[？?！!。，,]/g, '')
+}
+
+function checkIdentityConfirmation(q: string, secret: SecretFigure): YesNoAnswer | null {
+  const candidate = extractIdentityCandidate(q)
+  if (!candidate || !isKnownFigureName(candidate)) return null
+
+  return judgeGuessLocally(secret, candidate) ? '是' : '不是'
+}
+
+function extractIdentityCandidate(q: string): string | null {
+  const patterns = [
+    /^(?:他|她|ta)是(.+?)[吗嘛么]?$/i,
+    /^是(?:他|她|ta)(.+?)[吗嘛么]?$/i,
+    /^是不是(.+?)[吗嘛么]?$/i,
+    /^不就是(.+?)[吗嘛么]?$/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = q.match(pattern)
+    const candidate = match?.[1]?.trim()
+    if (candidate) return candidate
+  }
+
+  return null
+}
+
+function isKnownFigureName(candidate: string): boolean {
+  const normalizedCandidate = normalizeText(candidate)
+  return figures.some(figure => [figure.name, ...figure.aliases].some(name => normalizeText(name) === normalizedCandidate))
 }
 
 function checkEraMatch(q: string, era: string): YesNoAnswer | null {

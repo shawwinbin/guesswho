@@ -29,6 +29,18 @@ describe('localAnswerEngine', () => {
     expect(answerQuestionLocally(liBai, '他是唐朝及以前的吗？')).toBe('是')
   })
 
+  it('answers exact name confirmation before dynasty keywords inside the name', () => {
+    const guanHanqing: SecretFigure = {
+      name: '关汉卿',
+      aliases: ['己斋叟'],
+      era: '元朝',
+    }
+
+    expect(answerQuestionLocally(guanHanqing, '他是关汉卿吗')).toBe('是')
+    expect(answerQuestionLocally(guanHanqing, '不就是关汉卿吗')).toBe('是')
+    expect(answerQuestionLocally(guanHanqing, '他是李白吗')).toBe('不是')
+  })
+
   it('judges guesses locally using names and aliases', () => {
     expect(judgeGuessLocally(qinShiHuang, '秦始皇')).toBe(true)
     expect(judgeGuessLocally(qinShiHuang, '嬴政')).toBe(true)
