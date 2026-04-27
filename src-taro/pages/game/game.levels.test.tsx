@@ -144,13 +144,19 @@ describe('GamePage level HUD', () => {
     })
   })
 
-  it('shows level title and unlock hint', async () => {
+  it('shows a compact level header and core actions', async () => {
     render(<GamePage />)
 
-    expect(await screen.findByText('LEVEL 7')).toBeInTheDocument()
-    expect(screen.getByText('常识')).toBeInTheDocument()
+    expect(await screen.findByText('第7关 · 常识')).toBeInTheDocument()
+    expect(screen.getByText('00/20')).toBeInTheDocument()
     expect(screen.getByText('胜利后解锁第8关')).toBeInTheDocument()
     expect(screen.getByText('AI 提示（剩余 2 次）')).toBeInTheDocument()
+    expect(screen.queryByText('LEVEL 7')).not.toBeInTheDocument()
+    expect(screen.queryByText('难度提示')).not.toBeInTheDocument()
+    expect(screen.queryByText('本关目标')).not.toBeInTheDocument()
+    expect(screen.queryByText('请只提问可以用“是”或“否”回答的问题。')).not.toBeInTheDocument()
+    expect(screen.queryByText('问答卷轴')).not.toBeInTheDocument()
+    expect(screen.queryByText('开始提问')).not.toBeInTheDocument()
   })
 
   it('shows used AI hints on the game page', async () => {
@@ -181,7 +187,7 @@ describe('GamePage level HUD', () => {
 
     render(<GamePage />)
 
-    expect(await screen.findByText('LEVEL 5')).toBeInTheDocument()
+    expect(await screen.findByText('第5关 · 常识')).toBeInTheDocument()
     expect(screen.getByText('当前已解锁至第8关')).toBeInTheDocument()
     expect(screen.queryByText('胜利后解锁第6关')).not.toBeInTheDocument()
   })

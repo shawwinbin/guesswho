@@ -6,8 +6,8 @@ import { QuestionForm } from '../../components/QuestionForm'
 import { GuessForm } from '../../components/GuessForm'
 import { AnswerBadge } from '../../components/AnswerBadge'
 import { SUGGESTED_QUESTIONS } from '../../lib/gameContent'
-import { FIXED_QUESTION_LIMIT, normalizeGameSettings } from '../../lib/gameRules'
-import { getLevelHint, getLevelTitle, readLevelProgress } from '../../lib/levelProgress'
+import { getLevelTitle, readLevelProgress } from '../../lib/levelProgress'
+import { normalizeGameSettings } from '../../lib/gameRules'
 import { storage } from '../../lib/storage'
 import type { GameSettings } from '../../lib/types'
 import './game.scss'
@@ -20,10 +20,7 @@ export default function GamePage() {
   const levelProgress = readLevelProgress()
   const activeLevel = state.level ?? levelProgress.currentLevel
   const levelTitle = getLevelTitle(activeLevel)
-  const levelHint = getLevelHint(activeLevel)
-  const currentGoal = `通关条件：在 ${FIXED_QUESTION_LIMIT} 次提问内猜中本关人物`
   const isReplayingUnlockedLevel = levelProgress.highestUnlockedLevel > activeLevel
-  const progressLabel = isReplayingUnlockedLevel ? 'PROGRESS' : 'NEXT'
   const progressCopy = isReplayingUnlockedLevel
     ? `当前已解锁至第${levelProgress.highestUnlockedLevel}关`
     : `胜利后解锁第${activeLevel + 1}关`
@@ -78,47 +75,12 @@ export default function GamePage() {
         </View>
         <View className="game-header__title-wrap">
           <Text className="game-header__title">第{activeLevel}关 · {levelTitle}</Text>
-          <Text className="game-header__subtitle">{levelHint}</Text>
+          <Text className="game-header__subtitle">{progressCopy}</Text>
         </View>
-        <View className="game-header__spacer" />
-      </View>
-
-      <View className="level-hud mg-card">
-        <View className="level-hud__top">
-          <View className="level-hud__identity">
-            <Text className="level-hud__tag">{`LEVEL ${activeLevel}`}</Text>
-            <Text className="level-hud__title">{levelTitle}</Text>
-          </View>
-          <View className="level-hud__unlock">
-            <Text className="level-hud__unlock-label">{progressLabel}</Text>
-            <Text className="level-hud__unlock-text">{progressCopy}</Text>
-          </View>
-        </View>
-        <View className="level-hud__details">
-          <View className="level-hud__detail">
-            <Text className="level-hud__detail-label">难度提示</Text>
-            <Text className="level-hud__detail-text">{levelHint}</Text>
-          </View>
-          <View className="level-hud__detail">
-            <Text className="level-hud__detail-label">本关目标</Text>
-            <Text className="level-hud__detail-text">{currentGoal}</Text>
-          </View>
+        <View className="game-header__counter">
+          <Text className="game-header__counter-text">{`${String(state.history.length).padStart(2, '0')}/${String(settings.questionLimit).padStart(2, '0')}`}</Text>
         </View>
       </View>
-
-      <View className="status-bar">
-        <View className="status-bar__counter">
-          <Text className="status-bar__label">提问</Text>
-          <Text className="status-bar__counter-text">{`${String(state.history.length).padStart(2, '0')}/${String(settings.questionLimit).padStart(2, '0')}`}</Text>
-        </View>
-        <View className="status-bar__restart" onClick={() => restart(activeLevel)}>
-          <Text className="status-bar__restart-text">↻</Text>
-        </View>
-      </View>
-
-      {state.remainingQuestions !== null && (
-        <Text className="game-remaining">剩余提问次数：{state.remainingQuestions}</Text>
-      )}
 
       {state.errorMsg && (
         <View className="error-banner">
@@ -127,18 +89,7 @@ export default function GamePage() {
         </View>
       )}
 
-      <View className="hint-panel">
-        <View className="hint-panel__copy">
-          <Text className="hint">请只提问可以用“是”或“否”回答的问题。</Text>
-        </View>
-      </View>
-
       <View className="history-board mg-card">
-        <View className="history-board__cap">
-          <Text className="history-board__cap-text">问答卷轴</Text>
-          <Text className="history-board__cap-sub">历史线索记录</Text>
-        </View>
-
         <ScrollView className="history-panel" scrollY scrollWithAnimation>
           {state.history.length === 0 ? (
             <View className="empty-history mg-card">
@@ -154,7 +105,6 @@ export default function GamePage() {
                       <Text className="history-item__index">{`Q${idx + 1}`}</Text>
                     </View>
                     <View className="history-item__content">
-                      <Text className="history-item__label">你的提问</Text>
                       <Text className="question">{item.question}</Text>
                     </View>
                   </View>
@@ -167,12 +117,13 @@ export default function GamePage() {
       </View>
 
       <View className="input-panel mg-card">
-        <View className="input-panel__header">
-          <Text className="input-panel__title">开始提问</Text>
-          <Text className="input-panel__sub">先收集线索，确认后再提交最终答案。</Text>
-        </View>
-
         <View className="ai-hints">
+          <View className="input-panel__topline">
+            <Text className="input-panel__topline-text">剩余 {state.remainingQuestions ?? settings.questionLimit} 次提问</Text>
+            <View className="input-panel__restart" onClick={() => restart(activeLevel)}>
+              <Text className="input-panel__restart-text">重开</Text>
+            </View>
+          </View>
           <View
             className={`ai-hint-button ${state.remainingHints <= 0 || isLoading ? 'ai-hint-button--disabled' : ''}`}
             onClick={() => {
