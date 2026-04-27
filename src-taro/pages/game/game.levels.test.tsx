@@ -15,6 +15,7 @@ const {
   requestAiHintMock,
   restartMock,
   clearErrorMock,
+  classifyQuestionIntentMock,
 } = vi.hoisted(() => ({
   navigateToMock: vi.fn(),
   storageGetMock: vi.fn(),
@@ -24,6 +25,7 @@ const {
   requestAiHintMock: vi.fn(),
   restartMock: vi.fn(),
   clearErrorMock: vi.fn(),
+  classifyQuestionIntentMock: vi.fn(),
 }))
 
 const mockGameState: GameState = {
@@ -50,6 +52,7 @@ const mockGameSession = {
   requestAiHint: requestAiHintMock,
   restart: restartMock,
   clearError: clearErrorMock,
+  classifyQuestionIntent: classifyQuestionIntentMock,
 }
 
 vi.mock('@tarojs/taro', () => ({
@@ -93,6 +96,7 @@ vi.mock('../../components/QuestionForm', () => ({
     <div>
       <button onClick={() => onSubmit('是他李白吗？')}>AskGuess</button>
       <button onClick={() => onSubmit('他是李白吗？')}>AskNamedQuestion</button>
+      <button onClick={() => onSubmit('是不是李白？')}>AskSemanticGuess</button>
       <button onClick={() => onSubmit('他是诗人吗？')}>AskCategory</button>
       <div>QuestionForm</div>
     </div>
@@ -119,6 +123,8 @@ describe('GamePage level HUD', () => {
     requestAiHintMock.mockReset()
     restartMock.mockReset()
     clearErrorMock.mockReset()
+    classifyQuestionIntentMock.mockReset()
+    classifyQuestionIntentMock.mockResolvedValue({ type: 'question' })
     mockGameState.sessionId = 'session-1'
     mockGameState.phase = 'playing'
     mockGameState.level = 7
@@ -165,32 +171,47 @@ describe('GamePage level HUD', () => {
   })
 
   it('keeps a wrong person-guess question in normal question flow', async () => {
+    classifyQuestionIntentMock.mockResolvedValueOnce({ type: 'guess', guess: '李白' })
     askQuestionMock.mockResolvedValueOnce({ answer: '不是' })
     render(<GamePage />)
 
     fireEvent.click(await screen.findByText('AskGuess'))
 
-    expect(askQuestionMock).toHaveBeenCalledWith('是他李白吗？')
+    await waitFor(() => expect(askQuestionMock).toHaveBeenCalledWith('是他李白吗？'))
     expect(makeGuessMock).not.toHaveBeenCalled()
   })
 
   it('marks a person-guess question as a final guess only when the answer is yes', async () => {
+    classifyQuestionIntentMock.mockResolvedValueOnce({ type: 'guess', guess: '李白' })
     askQuestionMock.mockResolvedValueOnce({ answer: '是' })
     render(<GamePage />)
 
     fireEvent.click(await screen.findByText('AskGuess'))
 
-    expect(askQuestionMock).toHaveBeenCalledWith('是他李白吗？')
+    await waitFor(() => expect(askQuestionMock).toHaveBeenCalledWith('是他李白吗？'))
     await waitFor(() => expect(makeGuessMock).toHaveBeenCalledWith('李白'))
   })
 
   it('marks a normal named question as a final guess only when the answer is yes', async () => {
+    classifyQuestionIntentMock.mockResolvedValueOnce({ type: 'guess', guess: '李白' })
     askQuestionMock.mockResolvedValueOnce({ answer: '是' })
     render(<GamePage />)
 
     fireEvent.click(await screen.findByText('AskNamedQuestion'))
 
-    expect(askQuestionMock).toHaveBeenCalledWith('他是李白吗？')
+    await waitFor(() => expect(askQuestionMock).toHaveBeenCalledWith('他是李白吗？'))
+    await waitFor(() => expect(makeGuessMock).toHaveBeenCalledWith('李白'))
+  })
+
+  it('uses semantic intent to submit flexible final-answer questions only when the answer is yes', async () => {
+    classifyQuestionIntentMock.mockResolvedValueOnce({ type: 'guess', guess: '李白' })
+    askQuestionMock.mockResolvedValueOnce({ answer: '是' })
+    render(<GamePage />)
+
+    fireEvent.click(await screen.findByText('AskSemanticGuess'))
+
+    expect(classifyQuestionIntentMock).toHaveBeenCalledWith('是不是李白？')
+    await waitFor(() => expect(askQuestionMock).toHaveBeenCalledWith('是不是李白？'))
     await waitFor(() => expect(makeGuessMock).toHaveBeenCalledWith('李白'))
   })
 
@@ -199,7 +220,7 @@ describe('GamePage level HUD', () => {
 
     fireEvent.click(await screen.findByText('AskCategory'))
 
-    expect(askQuestionMock).toHaveBeenCalledWith('他是诗人吗？')
+    await waitFor(() => expect(askQuestionMock).toHaveBeenCalledWith('他是诗人吗？'))
     expect(makeGuessMock).not.toHaveBeenCalled()
   })
 

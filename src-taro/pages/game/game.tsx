@@ -7,14 +7,13 @@ import { AnswerBadge } from '../../components/AnswerBadge'
 import { SUGGESTED_QUESTIONS } from '../../lib/gameContent'
 import { getLevelTitle, readLevelProgress } from '../../lib/levelProgress'
 import { normalizeGameSettings } from '../../lib/gameRules'
-import { extractGuessFromQuestion } from '../../lib/questionGuess'
 import { storage } from '../../lib/storage'
 import type { GameSettings } from '../../lib/types'
 import './game.scss'
 
 export default function GamePage() {
   const settings = normalizeGameSettings(storage.get<GameSettings>('game-settings'))
-  const { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, requestAiHint, restart, clearError } = useGameSession(settings)
+  const { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, classifyQuestionIntent, requestAiHint, restart, clearError } = useGameSession(settings)
   const hasAttemptedInitialStartRef = useRef(false)
   const levelProgress = readLevelProgress()
   const activeLevel = state.level ?? levelProgress.currentLevel
@@ -55,17 +54,12 @@ export default function GamePage() {
   }
 
   const handleQuestionSubmit = async (question: string) => {
-    const guess = extractGuessFromQuestion(question)
+    const intent = await classifyQuestionIntent(question)
+    const response = await askQuestion(question)
 
-    if (guess) {
-      const response = await askQuestion(question)
-      if (response?.answer === '是' && response.status !== 'ended') {
-        await makeGuess(guess)
-      }
-      return
+    if (intent.type === 'guess' && response?.answer === '是' && response.status !== 'ended') {
+      await makeGuess(intent.guess)
     }
-
-    await askQuestion(question)
   }
 
   return (

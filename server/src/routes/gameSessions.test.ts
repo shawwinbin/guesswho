@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildApp } from '../app.js'
 import type { GameSessionService } from '../services/gameSessionService.js'
 
-function createServiceStub(): Pick<GameSessionService, 'createSession' | 'getSessionSnapshot' | 'submitQuestion' | 'submitGuess' | 'requestHint'> {
+function createServiceStub(): Pick<GameSessionService, 'createSession' | 'getSessionSnapshot' | 'submitQuestion' | 'submitGuess' | 'classifyQuestionIntent' | 'requestHint'> {
   return {
     createSession: vi.fn(async () => ({
       sessionId: 'session-1',
@@ -39,6 +39,10 @@ function createServiceStub(): Pick<GameSessionService, 'createSession' | 'getSes
       isCorrect: false,
       revealedName: '李白',
       status: 'ended' as const,
+    })),
+    classifyQuestionIntent: vi.fn(async () => ({
+      type: 'guess' as const,
+      guess: '李白',
     })),
     requestHint: vi.fn(async () => ({
       hint: '这位人物主要活跃在唐朝。',
@@ -157,6 +161,31 @@ describe('game session routes', () => {
 
     expect(response.statusCode).toBe(400)
     expect(service.createSession).not.toHaveBeenCalled()
+
+    await app.close()
+  })
+
+  it('classifies question intent through the http api', async () => {
+    const service = createServiceStub()
+    const app = await buildApp({
+      corsOrigin: 'http://localhost:5173',
+      gameSessionService: service as GameSessionService,
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/game-sessions/session-1/question-intent',
+      payload: {
+        question: '是不是李白？',
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({
+      type: 'guess',
+      guess: '李白',
+    })
+    expect(service.classifyQuestionIntent).toHaveBeenCalledWith('session-1', '是不是李白？')
 
     await app.close()
   })

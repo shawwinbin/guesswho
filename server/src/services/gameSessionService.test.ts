@@ -135,6 +135,10 @@ function createHostStub(): HostLlmService {
       isCorrect: guess === '李白',
       revealedName: '李白',
     })),
+    classifyQuestionIntent: vi.fn(async () => ({
+      type: 'guess' as const,
+      guess: '李白',
+    })),
   }
 }
 
@@ -221,6 +225,24 @@ describe('gameSessionService', () => {
         name: '秦始皇',
         era: '秦朝',
       }),
+    })
+  })
+
+  it('uses the host model to classify ambiguous final-answer intent', async () => {
+    const created = await service.createSession({
+      level: 4,
+      questionLimit: 3,
+      figureScope: 'all',
+    })
+
+    const intent = await service.classifyQuestionIntent(created.sessionId, '是不是李白？')
+
+    expect(intent).toEqual({
+      type: 'guess',
+      guess: '李白',
+    })
+    expect(vi.mocked(hostService.classifyQuestionIntent)).toHaveBeenCalledWith({
+      question: '是不是李白？',
     })
   })
 

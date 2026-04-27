@@ -83,6 +83,23 @@ describe('hostLlmService', () => {
     })
   })
 
+  it('parses semantic final-guess intent from upstream JSON content', async () => {
+    const fetchImpl = vi.fn(async (): Promise<Response> => createJsonResponse('{"type":"guess","guess":"李白"}'))
+    const service = createHostLlmService({
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'test-key',
+      model: 'gpt-test',
+      fetchImpl,
+    })
+
+    const intent = await service.classifyQuestionIntent({ question: '是不是李白？' })
+
+    expect(intent).toEqual({
+      type: 'guess',
+      guess: '李白',
+    })
+  })
+
   it('falls back to the stored figure names when verdict JSON is malformed', async () => {
     const fetchImpl = vi.fn(async (): Promise<Response> => createJsonResponse('not-json'))
     const service = createHostLlmService({

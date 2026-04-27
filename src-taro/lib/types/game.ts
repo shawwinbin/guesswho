@@ -67,6 +67,10 @@ export interface GuessResponse {
   status: 'ended'
 }
 
+export type QuestionIntent =
+  | { type: 'question' }
+  | { type: 'guess'; guess: string }
+
 export interface HintResponse {
   hint: string
   hints: HintRecord[]

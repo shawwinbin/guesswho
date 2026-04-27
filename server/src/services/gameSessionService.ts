@@ -8,7 +8,7 @@ import type {
   GameSessionRecord,
   GameSessionRepository,
 } from '../repositories/gameSessionRepository.js'
-import type { FigureScope, GuessVerdict, HostLlmService } from './hostLlmService.js'
+import type { FigureScope, GuessVerdict, HostLlmService, QuestionIntent } from './hostLlmService.js'
 
 export interface QuestionHistoryItem {
   question: string
@@ -64,6 +64,40 @@ interface GameSessionServiceParams {
 }
 
 const MAX_HINTS_PER_SESSION = 2
+const NON_GUESS_TERMS = new Set([
+  '中国人',
+  '外国人',
+  '男人',
+  '女性',
+  '男的',
+  '女的',
+  '皇帝',
+  '诗人',
+  '词人',
+  '武将',
+  '将军',
+  '军事家',
+  '政治家',
+  '思想家',
+  '哲学家',
+  '科学家',
+  '文学家',
+  '艺术家',
+  '唐朝人',
+  '宋朝人',
+  '明朝人',
+  '清朝人',
+  '古代人',
+  '现代人',
+  '近代人',
+])
+
+const LOCAL_GUESS_PATTERNS = [
+  /^(?:他|她|ta|TA)是(.+?)[吗嘛么]?[？?]?$/i,
+  /^是(?:他|她|ta|TA)(.+?)[吗嘛么]?[？?]?$/i,
+  /^(?:最终答案|答案|谜底)是(?:他|她|ta|TA)(.+?)[吗嘛么]?[？?]?$/i,
+  /^(?:我猜|猜)(?:是)?(?:他|她|ta|TA)(.+?)[吗嘛么]?[？?]?$/i,
+]
 
 export class GameSessionService {
   constructor(private readonly deps: GameSessionServiceParams) {}
@@ -151,6 +185,26 @@ export class GameSessionService {
     return {
       ...verdict,
       status: 'ended',
+    }
+  }
+
+  async classifyQuestionIntent(sessionId: string, question: string): Promise<QuestionIntent> {
+    const trimmedQuestion = question.trim()
+    if (!trimmedQuestion) {
+      throw badRequest('问题不能为空')
+    }
+
+    await this.requirePlayableSession(sessionId)
+
+    const localIntent = classifyQuestionIntentLocally(trimmedQuestion)
+    if (localIntent) {
+      return localIntent
+    }
+
+    try {
+      return await this.deps.hostService.classifyQuestionIntent({ question: trimmedQuestion })
+    } catch {
+      return { type: 'question' }
     }
   }
 
@@ -266,4 +320,42 @@ function buildSafeHint(record: GameSessionRecord, usedHints: number): string {
   }
 
   return `继续从${era}相关的身份、作品或重大事件切入，会比直接猜名字更稳。`
+}
+
+function classifyQuestionIntentLocally(question: string): QuestionIntent | null {
+  const normalizedQuestion = question.trim()
+
+  for (const pattern of LOCAL_GUESS_PATTERNS) {
+    const match = normalizedQuestion.match(pattern)
+    if (!match?.[1]) continue
+
+    const candidate = normalizeCandidate(match[1])
+    if (isNonGuessCandidate(candidate)) {
+      return { type: 'question' }
+    }
+
+    return {
+      type: 'guess',
+      guess: candidate,
+    }
+  }
+
+  const compactQuestion = normalizeCandidate(normalizedQuestion)
+  if (Array.from(NON_GUESS_TERMS).some(term => compactQuestion.includes(term))) {
+    return { type: 'question' }
+  }
+
+  return null
+}
+
+function normalizeCandidate(candidate: string): string {
+  return candidate
+    .replace(/[，。！？?!,.、\s]/g, '')
+    .replace(/^一位/, '')
+    .replace(/^一个/, '')
+    .trim()
+}
+
+function isNonGuessCandidate(candidate: string): boolean {
+  return candidate.length < 2 || NON_GUESS_TERMS.has(candidate) || candidate.endsWith('人')
 }

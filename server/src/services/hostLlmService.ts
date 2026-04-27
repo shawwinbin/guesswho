@@ -15,10 +15,15 @@ export interface GuessVerdict {
   revealedName: string
 }
 
+export type QuestionIntent =
+  | { type: 'question' }
+  | { type: 'guess'; guess: string }
+
 export interface HostLlmService {
   startRound(params: { figureScope: FigureScope }): Promise<SecretFigure>
   answerQuestion(params: { question: string; figure: SecretFigure }): Promise<YesNoAnswer>
   judgeGuess(params: { guess: string; figure: SecretFigure }): Promise<GuessVerdict>
+  classifyQuestionIntent(params: { question: string }): Promise<QuestionIntent>
 }
 
 interface CreateHostLlmServiceParams {
@@ -167,6 +172,37 @@ export function createHostLlmService({
         isCorrect: matchesFigureName(guess, figure),
         revealedName: figure.name,
       }
+    },
+
+    async classifyQuestionIntent({ question }) {
+      const content = await requestHost([
+        {
+          role: 'system',
+          content: [
+            '你是历史人物猜谜游戏的语义理解器。',
+            '判断玩家输入是否是在猜最终人物答案，而不是询问人物属性、类别、朝代、职业或经历。',
+            '如果是在猜最终人物答案，抽取人物名；否则判定为普通问题。',
+            '只返回 JSON，格式必须是 {"type":"guess","guess":"人物名"} 或 {"type":"question"}。',
+            '示例：是不是李白？ => {"type":"guess","guess":"李白"}。',
+            '示例：他是诗人吗？ => {"type":"question"}。',
+            '示例：他是不是中国人？ => {"type":"question"}。',
+          ].join('\n'),
+        },
+        {
+          role: 'user',
+          content: question,
+        },
+      ])
+
+      const parsed = parseJsonObject(content)
+      if (parsed?.type === 'guess' && typeof parsed.guess === 'string' && parsed.guess.trim()) {
+        return {
+          type: 'guess',
+          guess: parsed.guess.trim(),
+        }
+      }
+
+      return { type: 'question' }
     },
   }
 }

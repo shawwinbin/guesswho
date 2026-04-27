@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from 'react'
-import { createSession, fetchSession, submitQuestion, submitGuess, requestHint } from '../lib/gameApi'
+import { createSession, fetchSession, submitQuestion, submitGuess, requestHint, classifyQuestionIntent as classifyQuestionIntentApi } from '../lib/gameApi'
 import { FIXED_QUESTION_LIMIT } from '../lib/gameRules'
 import { readLevelProgress } from '../lib/levelProgress'
 import { storage } from '../lib/storage'
-import { GameSessionSnapshot, GameSettings, QuestionAnswer, YesNoAnswer } from '../lib/types'
+import { GameSessionSnapshot, GameSettings, QuestionAnswer, QuestionIntent, YesNoAnswer } from '../lib/types'
 
 export type GamePhase = 'idle' | 'loading' | 'playing' | 'ended'
 
@@ -182,6 +182,16 @@ export function useGameSession(settings: GameSettings) {
     }
   }, [state.sessionId, state.phase])
 
+  const classifyQuestionIntent = useCallback(async (question: string): Promise<QuestionIntent> => {
+    if (!state.sessionId || state.phase !== 'playing') return { type: 'question' }
+
+    try {
+      return await classifyQuestionIntentApi(state.sessionId, question)
+    } catch {
+      return { type: 'question' }
+    }
+  }, [state.sessionId, state.phase])
+
   const requestAiHint = useCallback(async () => {
     if (!state.sessionId || state.phase !== 'playing' || state.remainingHints <= 0) return
     setIsLoading(true)
@@ -210,5 +220,5 @@ export function useGameSession(settings: GameSettings) {
 
   const clearError = useCallback(() => setState(prev => ({ ...prev, errorMsg: null })), [])
 
-  return { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, requestAiHint, restart, clearError }
+  return { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, classifyQuestionIntent, requestAiHint, restart, clearError }
 }

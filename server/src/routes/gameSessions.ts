@@ -20,6 +20,12 @@ export async function registerGameSessionRoutes(app: FastifyInstance, service: G
     return service.submitQuestion(params.sessionId, body.question)
   })
 
+  app.post('/v1/game-sessions/:sessionId/question-intent', async request => {
+    const params = request.params as { sessionId: string }
+    const body = parseQuestionBody(request.body)
+    return service.classifyQuestionIntent(params.sessionId, body.question)
+  })
+
   app.post('/v1/game-sessions/:sessionId/guesses', async request => {
     const params = request.params as { sessionId: string }
     const body = parseGuessBody(request.body)
