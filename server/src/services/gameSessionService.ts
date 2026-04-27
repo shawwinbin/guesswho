@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { figures, selectRandomFigure } from '../lib/figureCatalog.js'
 import { badRequest, notFound } from '../lib/errors.js'
-import { answerQuestionByRules, findHistoricalFigure, judgeGuessLocally } from '../lib/localAnswerEngine.js'
+import {
+  answerQuestionByRulesDetailed,
+  findHistoricalFigure,
+  HIGH_CONFIDENCE_THRESHOLD,
+  judgeGuessLocally,
+  type LocalAnswerDecision,
+} from '../lib/localAnswerEngine.js'
 import type { SecretFigure, YesNoAnswer } from '../lib/normalization.js'
 import type {
   GameEventRepository,
@@ -45,6 +51,13 @@ export interface SubmitQuestionResponse {
   questionLimit: number
   remainingQuestions: number | null
   revealedName?: string
+}
+
+interface AnswerDecision {
+  answer: YesNoAnswer
+  answerSource: 'local' | 'llm' | 'fallback'
+  answerConfidence: number
+  answerReason: string
 }
 
 export interface SubmitGuessResponse extends GuessVerdict {
@@ -147,14 +160,18 @@ export class GameSessionService {
 
     const record = await this.requirePlayableSession(sessionId)
     const figure = this.getSecretFigure(record)
-    const answer = await this.answerQuestion(figure, trimmedQuestion)
+    const answerDecision = await this.answerQuestion(figure, trimmedQuestion)
 
     const nextCount = record.questionCount + 1
     const limitReached = record.questionLimit > 0 && nextCount >= record.questionLimit
     const nextStatus = limitReached ? 'ended' : 'playing'
     const revealedName = limitReached ? record.secretFigureName : undefined
 
-    await this.deps.eventRepository.appendQuestionEvent(sessionId, trimmedQuestion, answer)
+    await this.deps.eventRepository.appendQuestionEvent(sessionId, trimmedQuestion, answerDecision.answer, {
+      answerSource: answerDecision.answerSource,
+      answerConfidence: answerDecision.answerConfidence,
+      answerReason: answerDecision.answerReason,
+    })
     const updated = await this.deps.sessionRepository.updateSessionAfterQuestion(sessionId, {
       questionCount: nextCount,
       status: nextStatus,
@@ -162,7 +179,7 @@ export class GameSessionService {
     })
 
     return {
-      answer,
+      answer: answerDecision.answer,
       status: updated.status,
       questionCount: updated.questionCount,
       questionLimit: updated.questionLimit,
@@ -264,16 +281,35 @@ export class GameSessionService {
     }
   }
 
-  private async answerQuestion(figure: SecretFigure, question: string): Promise<YesNoAnswer> {
-    const localAnswer = answerQuestionByRules(figure, question)
-    if (localAnswer) {
-      return localAnswer
+  private async answerQuestion(figure: SecretFigure, question: string): Promise<AnswerDecision> {
+    const localAnswer = answerQuestionByRulesDetailed(figure, question)
+    if (localAnswer && localAnswer.confidence >= HIGH_CONFIDENCE_THRESHOLD) {
+      return toLocalAnswerDecision(localAnswer)
     }
 
     try {
-      return await this.deps.hostService.answerQuestion({ question, figure })
+      return {
+        answer: await this.deps.hostService.answerQuestion({ question, figure }),
+        answerSource: 'llm',
+        answerConfidence: 0.7,
+        answerReason: localAnswer ? 'local-low-confidence' : 'local-unknown',
+      }
     } catch {
-      return '不是'
+      if (localAnswer) {
+        return {
+          answer: localAnswer.answer,
+          answerSource: 'fallback',
+          answerConfidence: localAnswer.confidence,
+          answerReason: `llm-failed:${localAnswer.reason}`,
+        }
+      }
+
+      return {
+        answer: '不是',
+        answerSource: 'fallback',
+        answerConfidence: 0.1,
+        answerReason: 'llm-failed',
+      }
     }
   }
 
@@ -313,6 +349,15 @@ export class GameSessionService {
 function getRemainingQuestions(record: Pick<GameSessionRecord, 'questionCount' | 'questionLimit'>): number | null {
   if (record.questionLimit <= 0) return null
   return Math.max(record.questionLimit - record.questionCount, 0)
+}
+
+function toLocalAnswerDecision(localAnswer: LocalAnswerDecision): AnswerDecision {
+  return {
+    answer: localAnswer.answer,
+    answerSource: 'local',
+    answerConfidence: localAnswer.confidence,
+    answerReason: localAnswer.reason,
+  }
 }
 
 function getRemainingHints(events: Array<{ eventType: string }>): number {

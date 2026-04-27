@@ -44,6 +44,9 @@ export interface GameEventRecord {
   eventType: 'question' | 'guess' | 'hint'
   questionText: string | null
   answerText: '是' | '不是' | null
+  answerSource: string | null
+  answerConfidence: number | null
+  answerReason: string | null
   guessText: string | null
   hintText: string | null
   isCorrect: boolean | null
@@ -62,7 +65,12 @@ export interface GameSessionRepository {
 }
 
 export interface GameEventRepository {
-  appendQuestionEvent(sessionId: string, question: string, answer: '是' | '不是'): Promise<void>
+  appendQuestionEvent(
+    sessionId: string,
+    question: string,
+    answer: '是' | '不是',
+    metadata?: { answerSource?: string; answerConfidence?: number; answerReason?: string },
+  ): Promise<void>
   appendGuessEvent(sessionId: string, guess: string, isCorrect: boolean): Promise<void>
   appendHintEvent(sessionId: string, hint: string): Promise<void>
   listSessionEvents(options: ListSessionEventsOptions): Promise<GameEventRecord[]>
@@ -109,6 +117,11 @@ function mapEventRow(row: Record<string, unknown>): GameEventRecord {
     answerText: row.answer_text === '是' || row.answer_text === '不是'
       ? row.answer_text
       : null,
+    answerSource: row.answer_source ? String(row.answer_source) : null,
+    answerConfidence: row.answer_confidence === null || row.answer_confidence === undefined
+      ? null
+      : Number(row.answer_confidence),
+    answerReason: row.answer_reason ? String(row.answer_reason) : null,
     guessText: row.guess_text ? String(row.guess_text) : null,
     hintText: row.hint_text ? String(row.hint_text) : null,
     isCorrect: typeof row.is_correct === 'boolean' ? row.is_correct : null,
@@ -185,7 +198,12 @@ export class PostgresGameSessionRepository implements GameSessionRepository {
 export class PostgresGameEventRepository implements GameEventRepository {
   constructor(private readonly pool: Pool) {}
 
-  async appendQuestionEvent(sessionId: string, question: string, answer: '是' | '不是'): Promise<void> {
+  async appendQuestionEvent(
+    sessionId: string,
+    question: string,
+    answer: '是' | '不是',
+    metadata: { answerSource?: string; answerConfidence?: number; answerReason?: string } = {},
+  ): Promise<void> {
     await this.pool.query(
       `insert into game_events (
         id,
@@ -193,11 +211,22 @@ export class PostgresGameEventRepository implements GameEventRepository {
         event_type,
         question_text,
         answer_text,
+        answer_source,
+        answer_confidence,
+        answer_reason,
         guess_text,
         hint_text,
         is_correct
-      ) values ($1, $2, 'question', $3, $4, null, null, null)`,
-      [randomUUID(), sessionId, question, answer],
+      ) values ($1, $2, 'question', $3, $4, $5, $6, $7, null, null, null)`,
+      [
+        randomUUID(),
+        sessionId,
+        question,
+        answer,
+        metadata.answerSource ?? null,
+        metadata.answerConfidence ?? null,
+        metadata.answerReason ?? null,
+      ],
     )
   }
 

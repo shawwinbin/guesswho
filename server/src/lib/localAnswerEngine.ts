@@ -2,6 +2,14 @@ import { figures } from './figureCatalog.js'
 import { matchesFigureName, type SecretFigure, type YesNoAnswer } from './normalization.js'
 import type { HistoricalFigure } from '../types/figure.js'
 
+export interface LocalAnswerDecision {
+  answer: YesNoAnswer
+  confidence: number
+  reason: string
+}
+
+export const HIGH_CONFIDENCE_THRESHOLD = 0.8
+
 export function findHistoricalFigure(secret: SecretFigure): HistoricalFigure | null {
   const names = [secret.name, ...secret.aliases].map(normalizeText).filter(Boolean)
 
@@ -16,44 +24,52 @@ export function answerQuestionLocally(secret: SecretFigure, question: string): Y
 }
 
 export function answerQuestionByRules(secret: SecretFigure, question: string): YesNoAnswer | null {
+  return answerQuestionByRulesDetailed(secret, question)?.answer ?? null
+}
+
+export function answerQuestionByRulesDetailed(secret: SecretFigure, question: string): LocalAnswerDecision | null {
   const figure = findHistoricalFigure(secret)
   if (!figure) {
-    return matchesFigureName(question, secret) ? '是' : null
+    return matchesFigureName(question, secret) ? localDecision('是', 0.95, 'identity') : null
   }
 
   const q = normalizeQuestion(question)
   const identityMatch = checkIdentityConfirmation(q, secret)
-  if (identityMatch !== null) return identityMatch
+  if (identityMatch !== null) return localDecision(identityMatch, 0.99, 'identity')
 
   const specificPeriodMatch = checkSpecificPeriodMatch(q, figure)
-  if (specificPeriodMatch !== null) return specificPeriodMatch
+  if (specificPeriodMatch !== null) return localDecision(specificPeriodMatch, 0.9, 'specific-period')
 
   const eraMatch = checkEraMatch(q, figure)
   if (eraMatch !== null) return eraMatch
 
   const regionMatch = checkRegionMatch(q, figure)
-  if (regionMatch !== null) return regionMatch
+  if (regionMatch !== null) return localDecision(regionMatch, 0.95, 'region')
 
   const aliveMatch = checkAliveMatch(q, figure.isAlive)
-  if (aliveMatch !== null) return aliveMatch
+  if (aliveMatch !== null) return localDecision(aliveMatch, 0.95, 'alive')
 
   const genderMatch = checkGenderMatch(q, figure.gender)
-  if (genderMatch !== null) return genderMatch
+  if (genderMatch !== null) return localDecision(genderMatch, 0.95, 'gender')
 
   if (matchesRole(q, figure.role)) {
-    return '是'
+    return localDecision('是', 0.95, 'role')
   }
 
   for (const keyword of figure.keywords) {
     if (q.includes(normalizeText(keyword))) {
-      return '是'
+      return localDecision('是', 0.9, 'keyword')
     }
   }
 
   const attrMatch = checkBooleanAttributes(q, figure)
-  if (attrMatch !== null) return attrMatch
+  if (attrMatch !== null) return localDecision(attrMatch, 0.9, 'attribute')
 
-  return containsFigureName(q, figure) ? '是' : null
+  return containsFigureName(q, figure) ? localDecision('是', 0.95, 'identity') : null
+}
+
+function localDecision(answer: YesNoAnswer, confidence: number, reason: string): LocalAnswerDecision {
+  return { answer, confidence, reason }
 }
 
 export function judgeGuessLocally(secret: SecretFigure, guess: string): boolean {
@@ -171,7 +187,7 @@ function levenshteinDistance(left: string, right: string): number {
   return distances[rows.length][columns.length]
 }
 
-function checkEraMatch(q: string, figure: HistoricalFigure): YesNoAnswer | null {
+function checkEraMatch(q: string, figure: HistoricalFigure): LocalAnswerDecision | null {
   const era = figure.era
   const hanSubEraMatch = checkHanSubEraMatch(q, figure)
   if (hanSubEraMatch !== null) return hanSubEraMatch
@@ -198,13 +214,17 @@ function checkEraMatch(q: string, figure: HistoricalFigure): YesNoAnswer | null 
   }
 
   const relativeEraMatch = checkRelativeEraMatch(q, era)
-  if (relativeEraMatch !== null) return relativeEraMatch
+  if (relativeEraMatch !== null) return localDecision(relativeEraMatch, 0.9, 'relative-era')
 
   const allEras = Object.values(eraPatterns).flat()
   for (const eraName of allEras) {
     if (q.includes(normalizeText(eraName))) {
       const patterns = eraPatterns[era] || [era]
-      return patterns.some(pattern => q.includes(normalizeText(pattern))) ? '是' : '不是'
+      return localDecision(
+        patterns.some(pattern => q.includes(normalizeText(pattern))) ? '是' : '不是',
+        0.9,
+        'era',
+      )
     }
   }
 
@@ -212,7 +232,11 @@ function checkEraMatch(q: string, figure: HistoricalFigure): YesNoAnswer | null 
   for (const single of singleEras) {
     if (q.includes(single)) {
       const patterns = eraPatterns[era] || [era]
-      return patterns.some(pattern => pattern.includes(single) && q.includes(normalizeText(pattern))) ? '是' : '不是'
+      return localDecision(
+        patterns.some(pattern => pattern.includes(single) && q.includes(normalizeText(pattern))) ? '是' : '不是',
+        0.45,
+        'single-character-era',
+      )
     }
   }
 
@@ -246,13 +270,13 @@ function findNamedHistoricalPeriod(q: string): { startYear: number; endYear: num
   return NAMED_HISTORICAL_PERIODS.find(period => period.names.some(name => q.includes(normalizeText(name)))) ?? null
 }
 
-function checkHanSubEraMatch(q: string, figure: HistoricalFigure): YesNoAnswer | null {
+function checkHanSubEraMatch(q: string, figure: HistoricalFigure): LocalAnswerDecision | null {
   if (q.includes('西汉') || q.includes('前汉')) {
-    return answerByKnownYearsOrHanKeyword(figure, -202, 8, ['西汉', '前汉'])
+    return localDecision(answerByKnownYearsOrHanKeyword(figure, -202, 8, ['西汉', '前汉']), 0.9, 'han-sub-era')
   }
 
   if (q.includes('东汉') || q.includes('后汉')) {
-    return answerByKnownYearsOrHanKeyword(figure, 25, 220, ['东汉', '后汉'])
+    return localDecision(answerByKnownYearsOrHanKeyword(figure, 25, 220, ['东汉', '后汉']), 0.9, 'han-sub-era')
   }
 
   return null

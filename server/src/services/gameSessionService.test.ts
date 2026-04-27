@@ -76,13 +76,21 @@ class InMemoryGameSessionRepository implements GameSessionRepository {
 class InMemoryGameEventRepository implements GameEventRepository {
   private events: GameEventRecord[] = []
 
-  async appendQuestionEvent(sessionId: string, question: string, answer: '是' | '不是'): Promise<void> {
+  async appendQuestionEvent(
+    sessionId: string,
+    question: string,
+    answer: '是' | '不是',
+    metadata?: { answerSource?: string; answerConfidence?: number; answerReason?: string },
+  ): Promise<void> {
     this.events.push({
       id: randomUUID(),
       sessionId,
       eventType: 'question',
       questionText: question,
       answerText: answer,
+      answerSource: metadata?.answerSource ?? null,
+      answerConfidence: metadata?.answerConfidence ?? null,
+      answerReason: metadata?.answerReason ?? null,
       guessText: null,
       hintText: null,
       isCorrect: null,
@@ -97,6 +105,9 @@ class InMemoryGameEventRepository implements GameEventRepository {
       eventType: 'guess',
       questionText: null,
       answerText: null,
+      answerSource: null,
+      answerConfidence: null,
+      answerReason: null,
       guessText: guess,
       hintText: null,
       isCorrect,
@@ -111,6 +122,9 @@ class InMemoryGameEventRepository implements GameEventRepository {
       eventType: 'hint',
       questionText: null,
       answerText: null,
+      answerSource: null,
+      answerConfidence: null,
+      answerReason: null,
       guessText: null,
       hintText: hint,
       isCorrect: null,
@@ -225,6 +239,50 @@ describe('gameSessionService', () => {
         name: '秦始皇',
         era: '秦朝',
       }),
+    })
+  })
+
+  it('falls back to the host model when local rules have only low confidence', async () => {
+    vi.mocked(hostService.answerQuestion).mockResolvedValueOnce('是')
+    const created = await service.createSession({
+      level: 4,
+      questionLimit: 3,
+      figureScope: 'all',
+    })
+
+    const response = await service.submitQuestion(created.sessionId, '他是汉的吗？')
+    const events = await eventRepository.listSessionEvents({ sessionId: created.sessionId })
+
+    expect(response.answer).toBe('是')
+    expect(vi.mocked(hostService.answerQuestion)).toHaveBeenCalledWith({
+      question: '他是汉的吗？',
+      figure: expect.objectContaining({
+        name: '秦始皇',
+      }),
+    })
+    expect(events[0]).toMatchObject({
+      answerSource: 'llm',
+      answerConfidence: 0.7,
+      answerReason: 'local-low-confidence',
+    })
+  })
+
+  it('stores local answer source metadata for high-confidence answers', async () => {
+    const created = await service.createSession({
+      level: 4,
+      questionLimit: 3,
+      figureScope: 'all',
+    })
+
+    await service.submitQuestion(created.sessionId, '他是皇帝吗？')
+    const events = await eventRepository.listSessionEvents({ sessionId: created.sessionId })
+
+    expect(vi.mocked(hostService.answerQuestion)).not.toHaveBeenCalled()
+    expect(events[0]).toMatchObject({
+      answerText: '是',
+      answerSource: 'local',
+      answerConfidence: 0.95,
+      answerReason: 'role',
     })
   })
 
