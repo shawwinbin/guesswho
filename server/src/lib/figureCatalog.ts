@@ -1,5 +1,8 @@
-import { figures } from '../data/figures.js'
+import { additionalFigures } from '../data/additionalFigures.js'
+import { figures as baseFigures } from '../data/figures.js'
 import type { FigureScope, HistoricalFigure } from '../types/figure.js'
+
+export const figures: HistoricalFigure[] = [...baseFigures, ...additionalFigures]
 
 export function filterFiguresByScope(scope: FigureScope): HistoricalFigure[] {
   switch (scope) {

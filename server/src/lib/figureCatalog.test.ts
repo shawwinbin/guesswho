@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { FigureScope } from '../types/figure.js'
 import {
+  figures,
   filterFiguresByScope,
   filterFiguresByScopeAndLevel,
   getDifficultyForLevel,
@@ -23,6 +24,17 @@ describe('figureCatalog', () => {
     expect(poets.every(figure => figure.role === '诗人')).toBe(true)
     expect(tangSongFigures.length).toBeGreaterThan(0)
     expect(tangSongFigures.every(figure => ['唐朝', '宋朝'].includes(figure.era))).toBe(true)
+  })
+
+  it('keeps the game catalog large and internationally diverse', () => {
+    const nonChineseFigures = figures.filter(figure => !figure.isChinese)
+    const ids = new Set(figures.map(figure => figure.id))
+
+    expect(figures.length).toBeGreaterThanOrEqual(200)
+    expect(figures.length).toBeLessThanOrEqual(300)
+    expect(nonChineseFigures.length).toBeGreaterThanOrEqual(80)
+    expect(nonChineseFigures.every(figure => figure.region !== '中国')).toBe(true)
+    expect(ids.size).toBe(figures.length)
   })
 
   it('maps low levels to easy figures', () => {
