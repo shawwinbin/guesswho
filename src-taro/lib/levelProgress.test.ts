@@ -155,18 +155,18 @@ describe('levelProgress', () => {
 
   it('maps level titles at the expected milestones', () => {
     expect(getLevelTitle(1)).toBe('入门')
-    expect(getLevelTitle(5)).toBe('熟手')
-    expect(getLevelTitle(8)).toBe('名士')
-    expect(getLevelTitle(12)).toBe('国士')
-    expect(getLevelTitle(18)).toBe('传奇')
+    expect(getLevelTitle(5)).toBe('常识')
+    expect(getLevelTitle(11)).toBe('进阶')
+    expect(getLevelTitle(17)).toBe('高手')
+    expect(getLevelTitle(25)).toBe('传奇')
   })
 
   it('returns a readable hint for each title bucket', () => {
-    expect(getLevelHint(1)).toContain('入门')
-    expect(getLevelHint(7)).toContain('熟手')
-    expect(getLevelHint(10)).toContain('名士')
-    expect(getLevelHint(15)).toContain('国士')
-    expect(getLevelHint(18)).toContain('传奇')
+    expect(getLevelHint(1)).toContain('20 次提问')
+    expect(getLevelHint(7)).toContain('常见人物')
+    expect(getLevelHint(13)).toContain('同类型人物')
+    expect(getLevelHint(20)).toContain('冷门')
+    expect(getLevelHint(25)).toContain('跨地域人物')
   })
 
   it('builds a centered visible level window within unlocked bounds', () => {

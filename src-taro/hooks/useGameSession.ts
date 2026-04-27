@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { createSession, fetchSession, submitQuestion, submitGuess, requestHint } from '../lib/gameApi'
+import { FIXED_QUESTION_LIMIT } from '../lib/gameRules'
 import { readLevelProgress } from '../lib/levelProgress'
 import { storage } from '../lib/storage'
 import { GameSessionSnapshot, GameSettings, QuestionAnswer, YesNoAnswer } from '../lib/types'
@@ -119,7 +120,7 @@ export function useGameSession(settings: GameSettings) {
     setState(prev => ({ ...prev, phase: 'loading', errorMsg: null }))
     try {
       const snapshot = await createSession({
-        questionLimit: settings.questionLimit,
+        questionLimit: FIXED_QUESTION_LIMIT,
         figureScope: settings.figureScope,
         level: nextLevel
       })

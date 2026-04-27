@@ -32,19 +32,19 @@ export function filterFiguresByScope(scope: FigureScope): HistoricalFigure[] {
 }
 
 export function getDifficultyForLevel(level: number): HistoricalFigure['difficulty'] {
-  if (level <= 3) {
+  if (level <= 4) {
     return 1
   }
 
-  if (level <= 6) {
+  if (level <= 10) {
     return 2
   }
 
-  if (level <= 10) {
+  if (level <= 16) {
     return 3
   }
 
-  if (level <= 15) {
+  if (level <= 24) {
     return 4
   }
 

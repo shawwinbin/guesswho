@@ -100,4 +100,12 @@ describe('SettingsPage level reset flows', () => {
     expect(storageSetMock).toHaveBeenCalledWith(RESET_DATA_AT_KEY, expect.any(Number))
     expect(toastShowMock).toHaveBeenCalledWith('数据已清除')
   })
+
+  it('shows the fixed 20-question rule and removes the old 30-question entry', () => {
+    render(<SettingsPage />)
+
+    expect(screen.getByText('固定 20 次')).toBeTruthy()
+    expect(screen.getByText('所有关卡提问次数一致，难度只由人物池递进。')).toBeTruthy()
+    expect(screen.queryByText('30次')).toBeNull()
+  })
 })

@@ -10,7 +10,7 @@ import {
 
 describe('figureCatalog', () => {
   const publicScopes: FigureScope[] = ['all', 'poet', 'emperor', 'military', 'philosopher', 'female', 'tang-song']
-  const representativeLevels = [1, 4, 7, 11, 16]
+  const representativeLevels = [1, 5, 11, 17, 25]
 
   afterEach(() => {
     vi.restoreAllMocks()
@@ -42,16 +42,16 @@ describe('figureCatalog', () => {
     expect(ids.size).toBe(figures.length)
   })
 
-  it('maps low levels to easy figures', () => {
+  it('maps levels to progressive figure difficulty pools while keeping 20 questions fixed elsewhere', () => {
     expect(getDifficultyForLevel(1)).toBe(1)
-    expect(getDifficultyForLevel(3)).toBe(1)
-    expect(getDifficultyForLevel(4)).toBe(2)
-    expect(getDifficultyForLevel(6)).toBe(2)
-    expect(getDifficultyForLevel(7)).toBe(3)
-    expect(getDifficultyForLevel(10)).toBe(3)
-    expect(getDifficultyForLevel(11)).toBe(4)
-    expect(getDifficultyForLevel(15)).toBe(4)
-    expect(getDifficultyForLevel(16)).toBe(5)
+    expect(getDifficultyForLevel(4)).toBe(1)
+    expect(getDifficultyForLevel(5)).toBe(2)
+    expect(getDifficultyForLevel(10)).toBe(2)
+    expect(getDifficultyForLevel(11)).toBe(3)
+    expect(getDifficultyForLevel(16)).toBe(3)
+    expect(getDifficultyForLevel(17)).toBe(4)
+    expect(getDifficultyForLevel(24)).toBe(4)
+    expect(getDifficultyForLevel(25)).toBe(5)
 
     const easyFigures = filterFiguresByScopeAndLevel('all', 2)
 
@@ -60,7 +60,7 @@ describe('figureCatalog', () => {
   })
 
   it('uses higher difficulty pools for higher levels', () => {
-    const advancedPoets = filterFiguresByScopeAndLevel('poet', 11)
+    const advancedPoets = filterFiguresByScopeAndLevel('poet', 17)
 
     expect(advancedPoets.length).toBeGreaterThan(0)
     expect(advancedPoets.every(figure => figure.role === '诗人')).toBe(true)
@@ -68,7 +68,7 @@ describe('figureCatalog', () => {
   })
 
   it('falls back to the nearest lower difficulty in the same scope when needed', () => {
-    const fallbackEmperors = filterFiguresByScopeAndLevel('emperor', 16)
+    const fallbackEmperors = filterFiguresByScopeAndLevel('emperor', 25)
 
     expect(fallbackEmperors.length).toBeGreaterThan(0)
     expect(fallbackEmperors.every(figure => figure.role === '皇帝')).toBe(true)
@@ -99,7 +99,7 @@ describe('figureCatalog', () => {
   it('selects from the fallback pool when the target difficulty pool is empty', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0)
 
-    const figure = selectRandomFigure('emperor', 16)
+    const figure = selectRandomFigure('emperor', 25)
 
     expect(figure.role).toBe('皇帝')
     expect(figure.difficulty).toBe(4)

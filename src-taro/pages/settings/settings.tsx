@@ -2,6 +2,7 @@ import { View, Text } from '@tarojs/components'
 import { Dialog, Toast } from '@nutui/nutui-react-taro'
 import Taro from '@tarojs/taro'
 import { useState, useEffect } from 'react'
+import { DEFAULT_GAME_SETTINGS, normalizeGameSettings } from '../../lib/gameRules'
 import { storage } from '../../lib/storage'
 import { clearLevelProgress } from '../../lib/levelProgress'
 import { GameSettings } from '../../lib/types'
@@ -14,33 +15,24 @@ const RESET_DATA_AT_KEY = 'history-figure-guess-reset-data-at'
 const WECHAT_OPENID_STORAGE_KEY = 'wechat-openid'
 const WECHAT_USERINFO_STORAGE_KEY = 'wechat-userinfo'
 
-const DEFAULT_SETTINGS: GameSettings = {
-  questionLimit: 20,
-  figureScope: 'all',
-  voiceMode: false,
-  continuousVoiceMode: false,
-  autoStartContinuousVoice: false
-}
-
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS)
+  const [settings, setSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS)
 
   useEffect(() => {
     const saved = storage.get<GameSettings>(SETTINGS_STORAGE_KEY)
-    if (saved) setSettings(saved)
+    if (saved) {
+      const normalizedSettings = normalizeGameSettings(saved)
+      setSettings(normalizedSettings)
+      if (saved.questionLimit !== normalizedSettings.questionLimit) {
+        storage.set(SETTINGS_STORAGE_KEY, normalizedSettings)
+      }
+    }
   }, [])
 
   const clearSessionOnly = () => {
     storage.remove(SESSION_STORAGE_KEY)
     storage.remove(SESSION_SAVED_AT_KEY)
     Toast.show('当前对局缓存已清除')
-  }
-
-  const updateSetting = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => {
-    const newSettings = { ...settings, [key]: value }
-    setSettings(newSettings)
-    storage.set(SETTINGS_STORAGE_KEY, newSettings)
-    Toast.show('设置已保存')
   }
 
   const handleClearData = () => {
@@ -53,7 +45,7 @@ export default function SettingsPage() {
         storage.remove(WECHAT_USERINFO_STORAGE_KEY)
         clearLevelProgress()
         storage.set(RESET_DATA_AT_KEY, Date.now())
-        setSettings(DEFAULT_SETTINGS)
+        setSettings(DEFAULT_GAME_SETTINGS)
         Toast.show('数据已清除')
       }
     })
@@ -80,16 +72,9 @@ export default function SettingsPage() {
             <View className="settings-row__badge">≣</View>
             <Text className="settings-row__label">提问上限</Text>
           </View>
-          <View className="settings-segmented">
-            {[20, 30].map((count) => (
-              <View
-                key={count}
-                className={`settings-segmented__item ${settings.questionLimit === count ? 'is-active' : ''}`}
-                onClick={() => updateSetting('questionLimit', count)}
-              >
-                <Text className="settings-segmented__text">{`${count}次`}</Text>
-              </View>
-            ))}
+          <View className="settings-fixed-rule">
+            <Text className="settings-fixed-rule__value">{`固定 ${settings.questionLimit} 次`}</Text>
+            <Text className="settings-fixed-rule__hint">所有关卡提问次数一致，难度只由人物池递进。</Text>
           </View>
         </View>
 

@@ -197,7 +197,7 @@ describe('gameSessionService', () => {
       questionCount: 1,
       questionLimit: 1,
       remainingQuestions: 0,
-      revealedName: '司马迁',
+      revealedName: '秦始皇',
     })
     expect(snapshot.history).toEqual([{ question: '他是皇帝吗？', answer: '是' }])
     expect(snapshot.status).toBe('ended')

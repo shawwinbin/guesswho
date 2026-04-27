@@ -2,6 +2,7 @@ import { View, Text } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
 import { useEffect, useMemo } from 'react'
 import { figures } from '../../data/figures'
+import { normalizeGameSettings } from '../../lib/gameRules'
 import {
   applyLevelResult,
   buildVisibleLevels,
@@ -10,16 +11,8 @@ import {
   writeLevelProgress,
 } from '../../lib/levelProgress'
 import { storage } from '../../lib/storage'
-import { GameSettings, HistoricalFigure, LevelProgress } from '../../lib/types'
+import type { GameSettings, HistoricalFigure, LevelProgress } from '../../lib/types'
 import './result.scss'
-
-const DEFAULT_SETTINGS: GameSettings = {
-  questionLimit: 20,
-  figureScope: 'all',
-  voiceMode: false,
-  continuousVoiceMode: false,
-  autoStartContinuousVoice: false
-}
 
 function findFigure(name: string): HistoricalFigure | undefined {
   const normalizedName = name.trim().toLowerCase()
@@ -144,7 +137,7 @@ export default function ResultPage() {
   const revealedName = nameParam || '未知人物'
   const questionCount = parseCount(countParam)
   const resultType = isWinner ? 'win' : 'lose'
-  const settings = useMemo(() => storage.get<GameSettings>('game-settings') || DEFAULT_SETTINGS, [])
+  const settings = useMemo(() => normalizeGameSettings(storage.get<GameSettings>('game-settings')), [])
   const storedProgress = readLevelProgress()
   const playedLevel = parseLevel(levelParam, storedProgress.currentLevel)
   const progress = resolveResultProgress(storedProgress, playedLevel, resultType)

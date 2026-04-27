@@ -148,7 +148,7 @@ describe('GamePage level HUD', () => {
     render(<GamePage />)
 
     expect(await screen.findByText('LEVEL 7')).toBeInTheDocument()
-    expect(screen.getByText('熟手')).toBeInTheDocument()
+    expect(screen.getByText('常识')).toBeInTheDocument()
     expect(screen.getByText('胜利后解锁第8关')).toBeInTheDocument()
     expect(screen.getByText('AI 提示（剩余 2 次）')).toBeInTheDocument()
   })

@@ -4,11 +4,11 @@ import type { LevelProgress } from './types'
 export const LEVEL_PROGRESS_KEY = 'history-figure-guess-level-progress'
 
 const LEVEL_TITLES = [
-  { minLevel: 18, title: '传奇', hint: '传奇阶段：你已经能从复杂线索里稳定锁定历史人物。' },
-  { minLevel: 12, title: '国士', hint: '国士阶段：题目难度明显提高，开始考验系统判断。' },
-  { minLevel: 8, title: '名士', hint: '名士阶段：人物范围更广，需要更精准的提问策略。' },
-  { minLevel: 5, title: '熟手', hint: '熟手阶段：你已经掌握基础套路，可以挑战更高层级。' },
-  { minLevel: 1, title: '入门', hint: '入门阶段：先熟悉玩法和常见人物线索。' },
+  { minLevel: 25, title: '传奇', hint: '传奇阶段：冷门与跨地域人物为主，仍固定 20 次提问。' },
+  { minLevel: 17, title: '高手', hint: '高手阶段：人物更冷门，身份相近，需要用时代、地域、作品或事件排除。' },
+  { minLevel: 11, title: '进阶', hint: '进阶阶段：常见人物减少，同类型人物增多，提问要更精准。' },
+  { minLevel: 5, title: '常识', hint: '常识阶段：仍以常见人物为主，开始出现更多朝代和职业。' },
+  { minLevel: 1, title: '入门', hint: '入门阶段：高知名度人物，先熟悉 20 次提问节奏。' },
 ] as const
 
 function isPositiveInteger(value: unknown): value is number {

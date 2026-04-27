@@ -117,6 +117,29 @@
   font-weight: 900;
 }
 
+.settings-fixed-rule {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.settings-fixed-rule__value {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--mg-gold);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.settings-fixed-rule__hint {
+  max-width: 320px;
+  color: var(--mg-muted);
+  font-size: 16px;
+  line-height: 1.4;
+  text-align: right;
+}
+
 .settings-switch {
   display: flex;
   align-items: center;

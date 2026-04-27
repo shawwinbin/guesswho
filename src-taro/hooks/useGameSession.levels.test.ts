@@ -123,6 +123,26 @@ describe('useGameSession level wiring', () => {
     expect(result.current.state.level).toBe(7)
   })
 
+  it('always starts games with the fixed 20-question limit even when old settings contain 30', async () => {
+    createSessionMock.mockResolvedValue(createSnapshot({ level: 6 }))
+
+    const { result } = renderHook(() => useGameSession({
+      ...settings,
+      questionLimit: 30,
+    }))
+
+    await act(async () => {
+      await result.current.startGame(6)
+    })
+
+    expect(createSessionMock).toHaveBeenCalledWith({
+      questionLimit: 20,
+      figureScope: 'all',
+      level: 6,
+    })
+  })
+
+
   it('restores legacy sessions with the locally selected current level when snapshot.level is missing', async () => {
     storageGetMock.mockImplementation((key: string) => {
       if (key === SESSION_KEY) return 'legacy-session'

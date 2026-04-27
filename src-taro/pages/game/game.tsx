@@ -6,21 +6,14 @@ import { QuestionForm } from '../../components/QuestionForm'
 import { GuessForm } from '../../components/GuessForm'
 import { AnswerBadge } from '../../components/AnswerBadge'
 import { SUGGESTED_QUESTIONS } from '../../lib/gameContent'
+import { FIXED_QUESTION_LIMIT, normalizeGameSettings } from '../../lib/gameRules'
 import { getLevelHint, getLevelTitle, readLevelProgress } from '../../lib/levelProgress'
 import { storage } from '../../lib/storage'
-import { GameSettings } from '../../lib/types'
+import type { GameSettings } from '../../lib/types'
 import './game.scss'
 
-const DEFAULT_SETTINGS: GameSettings = {
-  questionLimit: 20,
-  figureScope: 'all',
-  voiceMode: false,
-  continuousVoiceMode: false,
-  autoStartContinuousVoice: false
-}
-
 export default function GamePage() {
-  const settings = storage.get<GameSettings>('game-settings') || DEFAULT_SETTINGS
+  const settings = normalizeGameSettings(storage.get<GameSettings>('game-settings'))
   const { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, requestAiHint, restart, clearError } = useGameSession(settings)
   const [pendingGuess, setPendingGuess] = useState<string | null>(null)
   const hasAttemptedInitialStartRef = useRef(false)
@@ -28,7 +21,7 @@ export default function GamePage() {
   const activeLevel = state.level ?? levelProgress.currentLevel
   const levelTitle = getLevelTitle(activeLevel)
   const levelHint = getLevelHint(activeLevel)
-  const currentGoal = `通关条件：在 ${settings.questionLimit} 次提问内猜中本关人物`
+  const currentGoal = `通关条件：在 ${FIXED_QUESTION_LIMIT} 次提问内猜中本关人物`
   const isReplayingUnlockedLevel = levelProgress.highestUnlockedLevel > activeLevel
   const progressLabel = isReplayingUnlockedLevel ? 'PROGRESS' : 'NEXT'
   const progressCopy = isReplayingUnlockedLevel
