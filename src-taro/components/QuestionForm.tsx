@@ -8,9 +8,27 @@ interface QuestionFormProps {
   loading?: boolean
   suggestions?: string[]
   onSuggestionClick?: (suggestion: string) => void
+  onAiHintClick?: () => void
+  aiHintDisabled?: boolean
+  remainingHints?: number
+  onVoiceClick?: () => void
+  voiceDisabled?: boolean
+  voiceActive?: boolean
 }
 
-export function QuestionForm({ onSubmit, disabled = false, loading = false, suggestions = [], onSuggestionClick }: QuestionFormProps) {
+export function QuestionForm({
+  onSubmit,
+  disabled = false,
+  loading = false,
+  suggestions = [],
+  onSuggestionClick,
+  onAiHintClick,
+  aiHintDisabled = false,
+  remainingHints = 0,
+  onVoiceClick,
+  voiceDisabled = false,
+  voiceActive = false,
+}: QuestionFormProps) {
   const [value, setValue] = useState('')
 
   const handleSubmit = () => {
@@ -43,6 +61,25 @@ export function QuestionForm({ onSubmit, disabled = false, loading = false, sugg
           onInput={(e) => setValue(e.detail.value)}
           onConfirm={handleSubmit}
         />
+        <View
+          className={`question-side-action question-side-action--hint ${aiHintDisabled ? 'is-disabled' : ''}`}
+          onClick={() => {
+            if (aiHintDisabled) return
+            onAiHintClick?.()
+          }}
+        >
+          <Text className="question-side-action__main">AI</Text>
+          <Text className="question-side-action__sub">提示{remainingHints}</Text>
+        </View>
+        <View
+          className={`question-side-action question-side-action--voice ${voiceActive ? 'is-active' : ''} ${voiceDisabled ? 'is-disabled' : ''}`}
+          onClick={() => {
+            if (voiceDisabled) return
+            onVoiceClick?.()
+          }}
+        >
+          <Text className="question-side-action__main">{voiceActive ? '■' : '🎤'}</Text>
+        </View>
         <View className={`question-submit ${disabled || loading || !value.trim() ? 'is-disabled' : ''}`} onClick={handleSubmit}>
           <Text className="question-submit__icon">{loading ? '…' : '➤'}</Text>
         </View>

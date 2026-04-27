@@ -16,6 +16,9 @@ const {
   restartMock,
   clearErrorMock,
   classifyQuestionIntentMock,
+  startRecordingMock,
+  stopRecordingMock,
+  voiceState,
 } = vi.hoisted(() => ({
   navigateToMock: vi.fn(),
   storageGetMock: vi.fn(),
@@ -26,6 +29,9 @@ const {
   restartMock: vi.fn(),
   clearErrorMock: vi.fn(),
   classifyQuestionIntentMock: vi.fn(),
+  startRecordingMock: vi.fn(),
+  stopRecordingMock: vi.fn(),
+  voiceState: { isRecording: false },
 }))
 
 const mockGameState: GameState = {
@@ -83,9 +89,9 @@ vi.mock('../../lib/storage', () => ({
 
 vi.mock('../../hooks/useVoiceGame', () => ({
   useVoiceGame: () => ({
-    startRecording: vi.fn(),
-    stopRecording: vi.fn(),
-    isRecording: false,
+    startRecording: startRecordingMock,
+    stopRecording: stopRecordingMock,
+    isRecording: voiceState.isRecording,
     transcript: '',
   }),
 }))
@@ -95,12 +101,26 @@ vi.mock('../../hooks/useGameSession', () => ({
 }))
 
 vi.mock('../../components/QuestionForm', () => ({
-  QuestionForm: ({ onSubmit }: { onSubmit: (question: string) => void }) => (
+  QuestionForm: ({
+    onSubmit,
+    onAiHintClick,
+    onVoiceClick,
+    remainingHints,
+    voiceActive,
+  }: {
+    onSubmit: (question: string) => void
+    onAiHintClick?: () => void
+    onVoiceClick?: () => void
+    remainingHints?: number
+    voiceActive?: boolean
+  }) => (
     <div>
       <button onClick={() => onSubmit('是他李白吗？')}>AskGuess</button>
       <button onClick={() => onSubmit('他是李白吗？')}>AskNamedQuestion</button>
       <button onClick={() => onSubmit('是不是李白？')}>AskSemanticGuess</button>
       <button onClick={() => onSubmit('他是诗人吗？')}>AskCategory</button>
+      <button onClick={onAiHintClick}>InlineAiHint {remainingHints}</button>
+      <button onClick={onVoiceClick}>{voiceActive ? 'InlineVoiceRecording' : 'InlineVoice'}</button>
       <div>QuestionForm</div>
     </div>
   ),
@@ -127,6 +147,9 @@ describe('GamePage level HUD', () => {
     restartMock.mockReset()
     clearErrorMock.mockReset()
     classifyQuestionIntentMock.mockReset()
+    startRecordingMock.mockReset()
+    stopRecordingMock.mockReset()
+    voiceState.isRecording = false
     classifyQuestionIntentMock.mockResolvedValue({ type: 'question' })
     mockGameState.sessionId = 'session-1'
     mockGameState.phase = 'playing'
@@ -162,7 +185,8 @@ describe('GamePage level HUD', () => {
     expect(await screen.findByText('第7关 · 常识')).toBeInTheDocument()
     expect(screen.getByText('00/20')).toBeInTheDocument()
     expect(screen.getByText('胜利后解锁第8关')).toBeInTheDocument()
-    expect(screen.getByText('AI 提示（剩余 2 次）')).toBeInTheDocument()
+    expect(screen.getByText('InlineAiHint 2')).toBeInTheDocument()
+    expect(screen.getByText('InlineVoice')).toBeInTheDocument()
     expect(screen.queryByText('LEVEL 7')).not.toBeInTheDocument()
     expect(screen.queryByText('难度提示')).not.toBeInTheDocument()
     expect(screen.queryByText('本关目标')).not.toBeInTheDocument()
@@ -233,9 +257,30 @@ describe('GamePage level HUD', () => {
 
     render(<GamePage />)
 
-    expect(await screen.findByText('AI 提示（剩余 1 次）')).toBeInTheDocument()
+    expect(await screen.findByText('InlineAiHint 1')).toBeInTheDocument()
     expect(screen.getByText('提示 1：这位人物主要活跃在唐朝。')).toBeInTheDocument()
     expect(screen.getByText('提示')).toBeInTheDocument()
+  })
+
+  it('uses the inline input actions for AI hints and voice', async () => {
+    render(<GamePage />)
+
+    fireEvent.click(await screen.findByText('InlineAiHint 2'))
+    fireEvent.click(screen.getByText('InlineVoice'))
+
+    expect(requestAiHintMock).toHaveBeenCalledTimes(1)
+    expect(startRecordingMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops voice recording from the inline voice action when already recording', async () => {
+    voiceState.isRecording = true
+
+    render(<GamePage />)
+
+    fireEvent.click(await screen.findByText('InlineVoiceRecording'))
+
+    expect(stopRecordingMock).toHaveBeenCalledTimes(1)
+    expect(startRecordingMock).not.toHaveBeenCalled()
   })
 
   it('renders each question and AI answer as separate chat messages', async () => {

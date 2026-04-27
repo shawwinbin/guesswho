@@ -2,6 +2,7 @@ import { View, Text, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useEffect, useRef, useState } from 'react'
 import { useGameSession } from '../../hooks/useGameSession'
+import { useVoiceGame } from '../../hooks/useVoiceGame'
 import { QuestionForm } from '../../components/QuestionForm'
 import { SUGGESTED_QUESTIONS } from '../../lib/gameContent'
 import { getLevelTitle, readLevelProgress } from '../../lib/levelProgress'
@@ -13,6 +14,11 @@ import './game.scss'
 export default function GamePage() {
   const settings = normalizeGameSettings(storage.get<GameSettings>('game-settings'))
   const { state, isLoading, isRestoreComplete, startGame, askQuestion, makeGuess, classifyQuestionIntent, requestAiHint, restart, clearError } = useGameSession(settings)
+  const voice = useVoiceGame({
+    onError: message => {
+      Taro.showToast?.({ title: message, icon: 'none' })
+    },
+  })
   const hasAttemptedInitialStartRef = useRef(false)
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
   const levelProgress = readLevelProgress()
@@ -69,6 +75,23 @@ export default function GamePage() {
     } finally {
       setPendingQuestion(null)
     }
+  }
+
+  const isQuestionInputDisabled = isLoading || pendingQuestion !== null || (state.remainingQuestions !== null && state.remainingQuestions <= 0)
+  const isAiHintDisabled = state.remainingHints <= 0 || isLoading
+  const handleAiHintClick = () => {
+    if (isAiHintDisabled) return
+    requestAiHint()
+  }
+  const handleVoiceClick = () => {
+    if (isQuestionInputDisabled) return
+
+    if (voice.isRecording) {
+      voice.stopRecording()
+      return
+    }
+
+    voice.startRecording()
   }
 
   return (
@@ -139,30 +162,25 @@ export default function GamePage() {
       </View>
 
       <View className="input-panel mg-card">
-        <View className="ai-hints">
-          <View className="input-panel__topline">
-            <Text className="input-panel__topline-text">剩余 {state.remainingQuestions ?? settings.questionLimit} 次提问</Text>
-            <View className="input-panel__restart" onClick={() => restart(activeLevel)}>
-              <Text className="input-panel__restart-text">重开</Text>
-            </View>
-          </View>
-          <View
-            className={`ai-hint-button ${state.remainingHints <= 0 || isLoading ? 'ai-hint-button--disabled' : ''}`}
-            onClick={() => {
-              if (state.remainingHints <= 0 || isLoading) return
-              requestAiHint()
-            }}
-          >
-            <Text className="ai-hint-button__text">AI 提示（剩余 {state.remainingHints} 次）</Text>
+        <View className="input-panel__topline">
+          <Text className="input-panel__topline-text">剩余 {state.remainingQuestions ?? settings.questionLimit} 次提问</Text>
+          <View className="input-panel__restart" onClick={() => restart(activeLevel)}>
+            <Text className="input-panel__restart-text">重开</Text>
           </View>
         </View>
 
         <QuestionForm
           onSubmit={handleQuestionSubmit}
-          disabled={isLoading || pendingQuestion !== null || (state.remainingQuestions !== null && state.remainingQuestions <= 0)}
+          disabled={isQuestionInputDisabled}
           loading={pendingQuestion !== null}
           suggestions={SUGGESTED_QUESTIONS.slice(0, 3)}
           onSuggestionClick={handleQuestionSubmit}
+          onAiHintClick={handleAiHintClick}
+          aiHintDisabled={isAiHintDisabled}
+          remainingHints={state.remainingHints}
+          onVoiceClick={handleVoiceClick}
+          voiceDisabled={isQuestionInputDisabled}
+          voiceActive={voice.isRecording}
         />
       </View>
     </View>
