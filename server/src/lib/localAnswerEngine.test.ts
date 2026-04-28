@@ -79,6 +79,30 @@ describe('localAnswerEngine', () => {
     expect(answerQuestionLocally(weiQing, '他是汉朝的吗')).toBe('是')
   })
 
+  it('distinguishes specific foreign countries from broad foreign regions', () => {
+    const homer: SecretFigure = {
+      name: '荷马',
+      aliases: ['Homer'],
+      era: '古希腊',
+    }
+    const caesar: SecretFigure = {
+      name: '尤利乌斯·凯撒',
+      aliases: ['Julius Caesar', '凯撒'],
+      era: '古罗马',
+    }
+    const peter: SecretFigure = {
+      name: '彼得大帝',
+      aliases: ['Peter the Great'],
+      era: '近代欧洲',
+    }
+
+    expect(answerQuestionLocally(homer, '他是法国的吗')).toBe('不是')
+    expect(answerQuestionLocally(caesar, '他是美国人吗')).toBe('不是')
+    expect(answerQuestionLocally(peter, '英国人')).toBe('不是')
+    expect(answerQuestionLocally(homer, '他是欧洲的吗')).toBe('是')
+    expect(answerQuestionLocally(caesar, '他是外国人吗')).toBe('是')
+  })
+
   it('judges guesses locally using names and aliases', () => {
     expect(judgeGuessLocally(qinShiHuang, '秦始皇')).toBe(true)
     expect(judgeGuessLocally(qinShiHuang, '嬴政')).toBe(true)

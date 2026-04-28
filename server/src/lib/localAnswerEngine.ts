@@ -394,15 +394,65 @@ function findRelativeEraInQuestion(q: string): string | null {
 }
 
 function checkRegionMatch(q: string, figure: HistoricalFigure): YesNoAnswer | null {
-  const foreignPatterns = ['日本', '韩国', '美国', '英国', '法国', '德国', '外国', '欧洲', '非洲', '美洲', '印度', '俄罗斯']
-  for (const pattern of foreignPatterns) {
-    if (q.includes(pattern)) {
-      return figure.isChinese ? '不是' : '是'
-    }
-  }
-
   if (q.includes('中国') || q.includes('中国人') || q.includes('华夏')) {
     return figure.isChinese ? '是' : '不是'
+  }
+
+  const specificCountryMatch = checkSpecificCountryRegionMatch(q, figure)
+  if (specificCountryMatch !== null) return specificCountryMatch
+
+  if (q.includes('外国') || q.includes('外国人')) {
+    return figure.isChinese ? '不是' : '是'
+  }
+
+  const broadRegionMatch = checkBroadRegionMatch(q, figure)
+  if (broadRegionMatch !== null) {
+    return broadRegionMatch
+  }
+
+  return null
+}
+
+const SPECIFIC_COUNTRY_REGION_ALIASES: Record<string, string[]> = {
+  日本: ['日本'],
+  韩国: ['韩国', '朝鲜'],
+  美国: ['美国'],
+  英国: ['英国', '英格兰', '苏格兰', '威尔士'],
+  法国: ['法国', '法兰西'],
+  德国: ['德国'],
+  印度: ['印度'],
+  俄罗斯: ['俄罗斯', '苏联'],
+  希腊: ['希腊', '雅典', '斯巴达', '马其顿'],
+  罗马: ['罗马'],
+  埃及: ['埃及'],
+  意大利: ['意大利'],
+}
+
+function checkSpecificCountryRegionMatch(q: string, figure: HistoricalFigure): YesNoAnswer | null {
+  const figureRegion = normalizeText(figure.region)
+
+  for (const [country, aliases] of Object.entries(SPECIFIC_COUNTRY_REGION_ALIASES)) {
+    if (!q.includes(country)) continue
+
+    return aliases.some(alias => figureRegion.includes(normalizeText(alias))) ? '是' : '不是'
+  }
+
+  return null
+}
+
+const BROAD_REGION_ALIASES: Record<string, string[]> = {
+  欧洲: ['欧洲', '希腊', '雅典', '斯巴达', '马其顿', '罗马', '法国', '法兰西', '英国', '英格兰', '德国', '意大利', '奥地利', '俄罗斯', '苏联', '法兰克', '诺曼底', '色雷斯'],
+  非洲: ['非洲', '埃及', '南非'],
+  美洲: ['美洲', '美国'],
+}
+
+function checkBroadRegionMatch(q: string, figure: HistoricalFigure): YesNoAnswer | null {
+  const figureRegion = normalizeText(figure.region)
+
+  for (const [region, aliases] of Object.entries(BROAD_REGION_ALIASES)) {
+    if (!q.includes(region)) continue
+
+    return aliases.some(alias => figureRegion.includes(normalizeText(alias))) ? '是' : '不是'
   }
 
   return null
