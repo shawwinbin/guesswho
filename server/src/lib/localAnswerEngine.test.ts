@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { answerQuestionLocally, judgeGuessLocally } from './localAnswerEngine.js'
+import { figures } from './figureCatalog.js'
 import type { SecretFigure } from './normalization.js'
+import type { HistoricalFigure } from '../types/figure.js'
 
 describe('localAnswerEngine', () => {
   const qinShiHuang: SecretFigure = {
@@ -101,6 +103,54 @@ describe('localAnswerEngine', () => {
     expect(answerQuestionLocally(peter, '英国人')).toBe('不是')
     expect(answerQuestionLocally(homer, '他是欧洲的吗')).toBe('是')
     expect(answerQuestionLocally(caesar, '他是外国人吗')).toBe('是')
+  })
+
+  it('keeps region answers consistent across the full active catalog', () => {
+    const specificRegions: Record<string, string[]> = {
+      日本: ['日本'],
+      韩国: ['韩国', '朝鲜'],
+      美国: ['美国'],
+      英国: ['英国', '英格兰', '苏格兰', '威尔士'],
+      法国: ['法国', '法兰西'],
+      德国: ['德国'],
+      印度: ['印度'],
+      俄罗斯: ['俄罗斯', '苏联'],
+      希腊: ['希腊', '雅典', '斯巴达', '马其顿'],
+      罗马: ['罗马'],
+      埃及: ['埃及'],
+      意大利: ['意大利'],
+      奥地利: ['奥地利'],
+      南非: ['南非'],
+      波斯: ['波斯'],
+      奥斯曼: ['奥斯曼'],
+      迦太基: ['迦太基'],
+      法兰克: ['法兰克'],
+      色雷斯: ['色雷斯'],
+    }
+    const broadRegions: Record<string, string[]> = {
+      欧洲: ['欧洲', '希腊', '雅典', '斯巴达', '马其顿', '罗马', '法国', '法兰西', '英国', '英格兰', '德国', '意大利', '奥地利', '俄罗斯', '苏联', '法兰克', '诺曼底', '色雷斯'],
+      非洲: ['非洲', '埃及', '南非'],
+      美洲: ['美洲', '美国'],
+    }
+    const regionMatches = (figure: HistoricalFigure, aliases: string[]) => {
+      const region = figure.region.toLowerCase()
+      return aliases.some(alias => region.includes(alias.toLowerCase()))
+    }
+
+    for (const figure of figures) {
+      const secret: SecretFigure = { name: figure.name, aliases: figure.aliases, era: figure.era }
+
+      expect(answerQuestionLocally(secret, '他是中国人吗')).toBe(figure.isChinese ? '是' : '不是')
+      expect(answerQuestionLocally(secret, '他是外国人吗')).toBe(figure.isChinese ? '不是' : '是')
+
+      for (const [region, aliases] of Object.entries(specificRegions)) {
+        expect(answerQuestionLocally(secret, `他是${region}人吗`)).toBe(regionMatches(figure, aliases) ? '是' : '不是')
+      }
+
+      for (const [region, aliases] of Object.entries(broadRegions)) {
+        expect(answerQuestionLocally(secret, `他是${region}人吗`)).toBe(regionMatches(figure, aliases) ? '是' : '不是')
+      }
+    }
   })
 
   it('judges guesses locally using names and aliases', () => {

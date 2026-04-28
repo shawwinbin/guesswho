@@ -426,6 +426,13 @@ const SPECIFIC_COUNTRY_REGION_ALIASES: Record<string, string[]> = {
   罗马: ['罗马'],
   埃及: ['埃及'],
   意大利: ['意大利'],
+  奥地利: ['奥地利'],
+  南非: ['南非'],
+  波斯: ['波斯'],
+  奥斯曼: ['奥斯曼'],
+  迦太基: ['迦太基'],
+  法兰克: ['法兰克'],
+  色雷斯: ['色雷斯'],
 }
 
 function checkSpecificCountryRegionMatch(q: string, figure: HistoricalFigure): YesNoAnswer | null {
